@@ -1,0 +1,13 @@
+{
+  "name": "@anchor/oauth-client-deno",
+  "version": "0.1.0",
+  "exports": "./mod.ts",
+  "publish": {
+    "include": [
+      "mod.ts",
+      "src/",
+      "README.md",
+      "LICENSE"
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "@anchor/oauth-client-deno",
+  "version": "0.1.0",
+  "description": "AT Protocol OAuth client for Deno - drop-in replacement for @atproto/oauth-client-node with Web Crypto API compatibility",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anchor/oauth-client-deno.git"
+  },
+  "keywords": [
+    "atproto",
+    "oauth",
+    "deno",
+    "bluesky",
+    "authentication",
+    "dpop",
+    "web-crypto"
+  ],
+  "exports": "./mod.ts",
+  "tasks": {
+    "test": "deno test --allow-net --allow-read",
+    "check": "deno check mod.ts",
+    "fmt": "deno fmt",
+    "lint": "deno lint"
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": false,
+    "proseWrap": "preserve"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": false
+  }
+}

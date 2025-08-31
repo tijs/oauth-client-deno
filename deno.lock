@@ -1,0 +1,14 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@atproto/syntax@0.4.0": "0.4.0"
+  },
+  "npm": {
+    "@atproto/syntax@0.4.0": {
+      "integrity": "sha512-b9y5ceHS8YKOfP3mdKmwAx5yVj9294UN7FG2XzP6V5aKUdFazEYRnR9m5n5ZQFKa3GNvz7de9guZCJ/sUTcOAA=="
+    }
+  },
+  "remote": {
+    "https://esm.sh/jose@5.2.0": "d26dace73b072827f432acc81ccfb158d906272f2001d408bdcaad56542d8ee2"
+  }
+}
