@@ -333,4 +333,5 @@ The implementation maintains full API compatibility with the original Node.js cl
 
 - Built to solve compatibility issues with `@atproto/oauth-client-node` in Deno
 - Inspired by the AT Protocol OAuth specification and reference implementations
+- Inspired by the Bookhive OAuth implementation: https://github.com/nperez0111/bookhive
 - Thanks to the Bluesky team for the AT Protocol ecosystem
