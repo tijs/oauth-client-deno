@@ -2,7 +2,7 @@
  * Default and configurable resolvers for AT Protocol handle resolution and PDS discovery
  */
 
-import { HandleResolutionError, PDSDiscoveryError } from "./errors.ts";
+import { AuthServerDiscoveryError, HandleResolutionError, PDSDiscoveryError } from "./errors.ts";
 import type { HandleResolver } from "./types.ts";
 
 /**
@@ -243,10 +243,46 @@ async function resolvePdsFromDid(did: string): Promise<string> {
 }
 
 /**
- * Discover OAuth endpoints from a PDS
+ * Discover authentication server from PDS metadata
  */
-export async function discoverOAuthEndpointsFromPDS(
+export async function discoverAuthenticationServer(
   pdsUrl: string,
+): Promise<string> {
+  try {
+    const response = await fetch(`${pdsUrl}/.well-known/oauth-protected-resource`);
+
+    if (!response.ok) {
+      throw new Error(`PDS OAuth metadata discovery failed: ${response.status}`);
+    }
+
+    const metadata = await response.json();
+
+    // The authorization_servers field contains potential authentication servers
+    if (metadata.authorization_servers && metadata.authorization_servers.length > 0) {
+      // Use the first authorization server
+      return metadata.authorization_servers[0];
+    }
+
+    // Fallback: assume PDS is the auth server
+    console.warn(
+      `No authorization servers found in PDS metadata for ${pdsUrl}, using PDS as auth server`,
+    );
+    return pdsUrl;
+  } catch (error) {
+    // For now, gracefully fallback but in the future we might want to throw
+    // throw new AuthServerDiscoveryError(pdsUrl, error as Error);
+
+    // Fallback: assume PDS is the auth server
+    console.warn(`Failed to discover auth server from ${pdsUrl}, using PDS as auth server:`, error);
+    return pdsUrl;
+  }
+}
+
+/**
+ * Discover OAuth endpoints from an authentication server
+ */
+export async function discoverOAuthEndpointsFromAuthServer(
+  authServerUrl: string,
 ): Promise<{
   authorizationEndpoint: string;
   tokenEndpoint: string;
@@ -254,7 +290,7 @@ export async function discoverOAuthEndpointsFromPDS(
 }> {
   try {
     const response = await fetch(
-      `${pdsUrl}/.well-known/oauth-authorization-server`,
+      `${authServerUrl}/.well-known/oauth-authorization-server`,
     );
 
     if (!response.ok) {
@@ -272,6 +308,27 @@ export async function discoverOAuthEndpointsFromPDS(
       tokenEndpoint: endpoints.token_endpoint,
       revocationEndpoint: endpoints.revocation_endpoint,
     };
+  } catch (error) {
+    throw new AuthServerDiscoveryError(authServerUrl, error as Error);
+  }
+}
+
+/**
+ * Discover OAuth endpoints from a PDS (complete flow)
+ */
+export async function discoverOAuthEndpointsFromPDS(
+  pdsUrl: string,
+): Promise<{
+  authorizationEndpoint: string;
+  tokenEndpoint: string;
+  revocationEndpoint?: string;
+}> {
+  try {
+    // Step 1: Discover authentication server from PDS
+    const authServer = await discoverAuthenticationServer(pdsUrl);
+
+    // Step 2: Discover OAuth endpoints from authentication server
+    return await discoverOAuthEndpointsFromAuthServer(authServer);
   } catch (error) {
     throw new PDSDiscoveryError(pdsUrl, error as Error);
   }

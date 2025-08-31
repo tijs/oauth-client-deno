@@ -35,6 +35,16 @@ export class PDSDiscoveryError extends OAuthError {
   }
 }
 
+export class AuthServerDiscoveryError extends OAuthError {
+  constructor(pdsUrl: string, cause?: Error) {
+    super(
+      `Failed to discover authentication server from PDS: ${pdsUrl}. This may be a custom domain setup issue.`,
+      cause,
+    );
+    this.name = "AuthServerDiscoveryError";
+  }
+}
+
 export class TokenExchangeError extends OAuthError {
   public readonly errorCode?: string;
 
