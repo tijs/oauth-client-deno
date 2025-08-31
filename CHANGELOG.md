@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full TypeScript support with strict type checking
 - API compatibility with `@atproto/oauth-client-node`
 
-### Features
+#### Key Features
 
 - **Handle Resolution**: Slingshot-first resolution with automatic fallbacks to Bluesky API and direct handle lookup
 - **Storage Flexibility**: Built-in storage implementations with TTL support
@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Session Management**: Automatic token refresh and session persistence
 - **Mobile Support**: Custom URL scheme support for mobile app integration
 
-### Technical Details
+#### Technical Implementation
 
 - Built specifically for Deno runtime using Web Crypto API
 - Zero Node.js dependencies - uses `jsr:@panva/jose` for JWT operations
