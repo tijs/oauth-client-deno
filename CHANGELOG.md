@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-08-31
+
+### Changed
+
+- **BREAKING: API Interface Updates**: Updated method signatures to better align with @atproto/oauth-client patterns
+  - `authorize()` now returns `URL` object instead of string
+  - `callback()` now accepts `URLSearchParams` instead of object with string properties
+  - `callback()` now returns `{ session: OAuthSession; state: string | null }` format
+  - Session now implements `OAuthSession` interface with `sub` and `aud` properties
+  - Added `AuthorizeOptions` and `CallbackOptions` interfaces matching @atproto patterns
+
+### Added
+
+- **Documentation Improvements**: Consolidated README with clear "Opinionated Design" section
+  - Clarified that this is NOT a drop-in replacement for @atproto/oauth-client-node
+  - Emphasized handle-focused design and Deno-first approach
+  - Simplified comparison table and removed repetitive messaging
+- **Bun Compatibility**: Confirmed Web Crypto API compatibility with Bun runtime
+  - All core functionality works with Bun when using npm dependencies instead of JSR
+
+### Technical Notes
+
+- While interface signatures now align better with @atproto patterns, this client remains handle-focused
+- Accepts AT Protocol handles only (not DIDs or URLs like @atproto/oauth-client-node)
+- Built for Deno environments with Web Crypto API, not Node.js
+
 ## [0.1.2] - 2025-08-31
 
 ### Fixed
@@ -66,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implements AT Protocol OAuth specification with full DPoP support
 - Uses Web Standards for maximum cross-platform compatibility
 
+[1.0.0]: https://github.com/tijs/oauth-client-deno/releases/tag/v1.0.0
 [0.1.2]: https://github.com/tijs/oauth-client-deno/releases/tag/v0.1.2
 [0.1.1]: https://github.com/tijs/oauth-client-deno/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tijs/oauth-client-deno/releases/tag/v0.1.0
