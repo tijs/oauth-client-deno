@@ -124,16 +124,16 @@ export class OAuthClient {
    * ```
    */
   async authorize(
-    input: string,
+    handle: string,
     options?: AuthorizeOptions,
   ): Promise<URL> {
-    if (!isValidHandle(input)) {
-      throw new InvalidHandleError(input);
+    if (!isValidHandle(handle)) {
+      throw new InvalidHandleError(handle);
     }
 
     try {
       // Resolve handle to get user's PDS and DID
-      const resolved = await this.handleResolver(input);
+      const resolved = await this.handleResolver(handle);
 
       // Discover OAuth endpoints from the PDS
       const oauthEndpoints = await discoverOAuthEndpointsFromPDS(resolved.pdsUrl);
@@ -148,7 +148,7 @@ export class OAuthClient {
       await this.storage.set(`pkce:${state}`, {
         codeVerifier,
         authServer,
-        handle: input,
+        handle: handle,
         did: resolved.did,
         pdsUrl: resolved.pdsUrl,
       }, { ttl: 600 }); // 10 minutes
@@ -160,7 +160,7 @@ export class OAuthClient {
           codeChallenge,
           state,
           scope: options?.scope ?? "atproto transition:generic",
-          loginHint: options?.loginHint ?? input,
+          loginHint: options?.loginHint ?? handle,
         },
       );
 

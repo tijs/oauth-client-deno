@@ -1,10 +1,11 @@
 /**
  * @fileoverview AT Protocol OAuth client for Deno
  *
- * A Deno-compatible AT Protocol OAuth client that serves as a drop-in
- * replacement for @atproto/oauth-client-node. Built specifically to solve
- * crypto compatibility issues between Node.js-specific implementations and
- * Deno runtime environments.
+ * A Deno-compatible AT Protocol OAuth client built for handle-based authentication.
+ * **Not a drop-in replacement** for @atproto/oauth-client-node - this client is
+ * handle-focused and designed specifically for Deno environments using Web Crypto API.
+ * Built to solve crypto compatibility issues between Node.js-specific implementations
+ * and Deno runtime environments.
  *
  * Uses Web Crypto API exclusively for maximum cross-platform compatibility.
  *
