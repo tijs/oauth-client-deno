@@ -1,19 +1,25 @@
 # @tijs/oauth-client-deno
 
-A **Deno-compatible** AT Protocol OAuth client built for handle-based authentication workflows.
+A **Deno-compatible** AT Protocol OAuth client built specifically for Deno environments using Web Crypto API. Built to solve crypto compatibility issues between Node.js-specific implementations and Deno runtime environments.
 
-**Not a drop-in replacement** for `@atproto/oauth-client-node` - this client is **handle-focused** and designed specifically for Deno environments using Web Crypto API. Built to solve crypto compatibility issues between Node.js-specific implementations and Deno runtime environments.
+## 🎯 Opinionated Design
 
-> **⚠️ Opinionated Design**: This client uses **Slingshot** as the default handle resolver with fallbacks to other methods. Slingshot is an AT Protocol service that helps with handle resolution and OAuth endpoint discovery. If your use case requires avoiding third-party services or you need complete control over handle resolution, this may not be the right client for you. See [Handle Resolution](#handle-resolution) for alternatives.
+This client makes specific design choices that may or may not fit your use case:
+
+- **Handle-focused**: Accepts AT Protocol handles (`alice.bsky.social`) only, not DIDs or URLs
+- **Slingshot resolver**: Uses Slingshot as the default handle resolver with fallbacks
+- **Deno-first**: Built for Deno runtime, not a drop-in replacement for `@atproto/oauth-client-node`
+- **Web Crypto API**: Uses modern web standards instead of Node.js crypto
+
+**This is perfect if you're building Deno applications with handle-based authentication.** For more flexible input types (DIDs, URLs) or Node.js environments, use `@atproto/oauth-client-node` instead.
 
 ## ✨ Key Features
 
-- 🦕 **Deno Native**: Built specifically for Deno using Web Crypto API
-- 🎯 **Handle-Focused**: Optimized for AT Protocol handle-based OAuth flows (`alice.bsky.social`)
-- 🛠️ **Configurable**: Flexible handle resolution, storage backends, and OAuth settings
-- 🔒 **Secure DPoP**: Full DPoP (Demonstrating Proof of Possession) implementation
-- 🌐 **Multi-Platform**: Works in Deno, browsers, and other Web Crypto environments
-- 📦 **Zero Node.js Dependencies**: Pure Web Standards implementation
+- 🔒 **Complete OAuth 2.0 + DPoP**: Full AT Protocol authentication implementation
+- 🛠️ **Configurable Storage**: Memory, LocalStorage, SQLite, or custom backends
+- 🔄 **Multiple Resolvers**: Slingshot, Bluesky API, direct resolution with fallbacks
+- 🚀 **Production Ready**: Comprehensive error handling, session management, and testing
+- 📦 **Zero Dependencies**: Pure Web Standards implementation
 
 ## 🚀 Installation
 
@@ -34,25 +40,10 @@ import { OAuthClient, MemoryStorage } from "jsr:@tijs/oauth-client-deno@^0.1.2";
 
 | Feature          | @tijs/oauth-client-deno                        | @atproto/oauth-client-node                |
 | ---------------- | ---------------------------------------------- | ----------------------------------------- |
-| **Input Types**  | ✅ AT Protocol handles (`alice.bsky.social`)   | ✅ Handles, DIDs, PDS URLs, Entryway URLs |
-| **Runtime**      | ✅ Deno, Web Crypto API                        | ✅ Node.js, Node crypto                   |
-| **Return Types** | ✅ `URL` objects, `URLSearchParams`            | ✅ `URL` objects, `URLSearchParams`       |
-| **DPoP Support** | ✅ Full implementation                         | ✅ Full implementation                    |
-| **Storage**      | ✅ Configurable (Memory, LocalStorage, SQLite) | ✅ Configurable                           |
-| **Use Case**     | 🎯 **Handle-focused Deno apps**                | 🌐 **Full-featured Node.js apps**         |
-
-**Choose this package if:**
-
-- ✅ You're building with **Deno**
-- ✅ You work with **AT Protocol handles** (most common use case)
-- ✅ You want **Web Crypto API** compatibility
-- ✅ You prefer **focused, simpler** APIs
-
-**Choose @atproto/oauth-client-node if:**
-
-- ✅ You need **DIDs, PDS URLs** input support
-- ✅ You're in a **Node.js** environment
-- ✅ You need the **most flexible** resolver
+| **Input Types**  | AT Protocol handles only                       | Handles, DIDs, PDS URLs, Entryway URLs   |
+| **Runtime**      | Deno, Web Crypto API                          | Node.js, Node crypto                     |
+| **Return Types** | `URL` objects, `URLSearchParams`              | `URL` objects, `URLSearchParams`         |
+| **Storage**      | Memory, LocalStorage, SQLite, custom          | Configurable                              |
 
 ## 📖 Quick Start
 
