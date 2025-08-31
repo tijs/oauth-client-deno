@@ -18,12 +18,17 @@ Built specifically to solve crypto compatibility issues between Node.js-specific
 ## 🚀 Installation
 
 ```bash
-# Using JSR
+# Using JSR (recommended)
 deno add @tijs/oauth-client-deno
 
-# Or import directly
+# Or import directly from JSR
 import { OAuthClient, MemoryStorage } from "jsr:@tijs/oauth-client-deno";
+
+# Pin to a specific version (optional)
+import { OAuthClient, MemoryStorage } from "jsr:@tijs/oauth-client-deno@^0.1.2";
 ```
+
+> **Note**: This package is designed for JSR and includes proper version pinning. Check the [CHANGELOG](CHANGELOG.md) for version history. If the package hasn't been published to JSR yet, it can be published using `deno publish` from this repository.
 
 ## 📖 Quick Start
 
