@@ -1,6 +1,5 @@
 # Deno generated files
 .deno/
-deno.lock
 
 # Build outputs
 dist/
