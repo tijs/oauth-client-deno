@@ -38,12 +38,12 @@ import { OAuthClient, MemoryStorage } from "jsr:@tijs/oauth-client-deno@^0.1.2";
 
 ## 🔄 vs @atproto/oauth-client-node
 
-| Feature          | @tijs/oauth-client-deno                        | @atproto/oauth-client-node                |
-| ---------------- | ---------------------------------------------- | ----------------------------------------- |
-| **Input Types**  | AT Protocol handles only                       | Handles, DIDs, PDS URLs, Entryway URLs   |
-| **Runtime**      | Deno, Web Crypto API                          | Node.js, Node crypto                     |
-| **Return Types** | `URL` objects, `URLSearchParams`              | `URL` objects, `URLSearchParams`         |
-| **Storage**      | Memory, LocalStorage, SQLite, custom          | Configurable                              |
+| Feature          | @tijs/oauth-client-deno              | @atproto/oauth-client-node             |
+| ---------------- | ------------------------------------ | -------------------------------------- |
+| **Input Types**  | AT Protocol handles only             | Handles, DIDs, PDS URLs, Entryway URLs |
+| **Runtime**      | Deno, Web Crypto API                 | Node.js, Node crypto                   |
+| **Return Types** | `URL` objects, `URLSearchParams`     | `URL` objects, `URLSearchParams`       |
+| **Storage**      | Memory, LocalStorage, SQLite, custom | Configurable                           |
 
 ## 📖 Quick Start
 
