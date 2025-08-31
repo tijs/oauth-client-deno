@@ -452,9 +452,9 @@ export class OAuthClient {
       body: tokenBody,
     });
 
-    // Handle DPoP nonce requirement
-    if (!response.ok && response.status === 401) {
-      const nonce = response.headers.get("dpop-nonce");
+    // Handle DPoP nonce requirement - AT Protocol uses 400 status
+    if (!response.ok && response.status === 400) {
+      const nonce = response.headers.get("DPoP-Nonce");
       if (nonce) {
         // Retry with nonce
         const dpopProofWithNonce = await generateDPoPProof(
@@ -519,9 +519,9 @@ export class OAuthClient {
         body: tokenBody,
       });
 
-      // Handle DPoP nonce requirement
-      if (!response.ok && response.status === 401) {
-        const nonce = response.headers.get("dpop-nonce");
+      // Handle DPoP nonce requirement - AT Protocol uses 400 status
+      if (!response.ok && response.status === 400) {
+        const nonce = response.headers.get("DPoP-Nonce");
         if (nonce) {
           // Retry with nonce
           const dpopProofWithNonce = await generateDPoPProof(

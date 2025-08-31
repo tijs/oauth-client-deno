@@ -321,13 +321,16 @@ export async function discoverOAuthEndpointsFromPDS(
   try {
     // Step 1: Try to discover authentication server from PDS
     const authServer = await discoverAuthenticationServer(pdsUrl);
-    
+
     // Step 2: Discover OAuth endpoints from authentication server
     return await discoverOAuthEndpointsFromAuthServer(authServer);
   } catch (authServerError) {
     // If auth server discovery fails, try using PDS directly as fallback
     try {
-      console.warn(`Auth server discovery failed for ${pdsUrl}, trying PDS directly:`, authServerError);
+      console.warn(
+        `Auth server discovery failed for ${pdsUrl}, trying PDS directly:`,
+        authServerError,
+      );
       return await discoverOAuthEndpointsFromAuthServer(pdsUrl);
     } catch (pdsError) {
       throw new PDSDiscoveryError(pdsUrl, pdsError as Error);
