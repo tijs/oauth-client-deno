@@ -10,7 +10,7 @@
  *
  * @example Basic usage
  * ```ts
- * import { OAuthClient, MemoryStorage } from "@anchor/oauth-client-deno";
+ * import { OAuthClient, MemoryStorage } from "@tijs/oauth-client-deno";
  *
  * const client = new OAuthClient({
  *   clientId: "https://myapp.com/client-metadata.json",

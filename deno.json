@@ -1,11 +1,11 @@
 {
-  "name": "@anchor/oauth-client-deno",
+  "name": "@tijs/oauth-client-deno",
   "version": "0.1.0",
   "description": "AT Protocol OAuth client for Deno - drop-in replacement for @atproto/oauth-client-node with Web Crypto API compatibility",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/anchor/oauth-client-deno.git"
+    "url": "git+https://github.com/tijs/oauth-client-deno.git"
   },
   "keywords": [
     "atproto",

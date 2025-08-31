@@ -1,4 +1,4 @@
-# @anchor/oauth-client-deno
+# @tijs/oauth-client-deno
 
 A **Deno-compatible** AT Protocol OAuth client that serves as a drop-in replacement for `@atproto/oauth-client-node`.
 
@@ -17,10 +17,10 @@ Built specifically to solve crypto compatibility issues between Node.js-specific
 
 ```bash
 # Using JSR
-deno add @anchor/oauth-client-deno
+deno add @tijs/oauth-client-deno
 
 # Or import directly
-import { OAuthClient, MemoryStorage } from "jsr:@anchor/oauth-client-deno";
+import { OAuthClient, MemoryStorage } from "jsr:@tijs/oauth-client-deno";
 ```
 
 ## 📖 Quick Start
@@ -28,7 +28,7 @@ import { OAuthClient, MemoryStorage } from "jsr:@anchor/oauth-client-deno";
 ### Basic Usage
 
 ```typescript
-import { MemoryStorage, OAuthClient } from "jsr:@anchor/oauth-client-deno";
+import { MemoryStorage, OAuthClient } from "jsr:@tijs/oauth-client-deno";
 
 // Initialize client
 const client = new OAuthClient({
@@ -88,15 +88,15 @@ Choose from built-in storage options or implement your own:
 
 ```typescript
 // In-memory storage (development)
-import { MemoryStorage } from "jsr:@anchor/oauth-client-deno";
+import { MemoryStorage } from "jsr:@tijs/oauth-client-deno";
 const storage = new MemoryStorage();
 
 // SQLite storage (for Deno CLI apps)
-import { SQLiteStorage } from "jsr:@anchor/oauth-client-deno";
+import { SQLiteStorage } from "jsr:@tijs/oauth-client-deno";
 const storage = new SQLiteStorage(sqlite);
 
 // localStorage (for browsers)
-import { LocalStorage } from "jsr:@anchor/oauth-client-deno";
+import { LocalStorage } from "jsr:@tijs/oauth-client-deno";
 const storage = new LocalStorage();
 
 // Custom storage implementation
@@ -116,7 +116,7 @@ import {
   CustomResolver,
   DirectoryResolver,
   SlingshotResolver,
-} from "jsr:@anchor/oauth-client-deno";
+} from "jsr:@tijs/oauth-client-deno";
 
 // Default: Slingshot with fallbacks
 const client = new OAuthClient({
@@ -159,7 +159,7 @@ import {
   OAuthError,
   SessionError,
   TokenExchangeError,
-} from "jsr:@anchor/oauth-client-deno";
+} from "jsr:@tijs/oauth-client-deno";
 
 try {
   const authUrl = await client.authorize("invalid.handle");
@@ -250,7 +250,7 @@ interface Storage {
 
 ## 🆚 Differences from @atproto/oauth-client-node
 
-| Feature               | @atproto/oauth-client-node      | @anchor/oauth-client-deno               |
+| Feature               | @atproto/oauth-client-node      | @tijs/oauth-client-deno                 |
 | --------------------- | ------------------------------- | --------------------------------------- |
 | **Runtime**           | Node.js only                    | Deno, Browser, Web Standards            |
 | **Crypto**            | Node.js crypto + jose           | Web Crypto API + jose                   |
