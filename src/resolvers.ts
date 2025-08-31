@@ -269,12 +269,7 @@ export async function discoverAuthenticationServer(
     );
     return pdsUrl;
   } catch (error) {
-    // For now, gracefully fallback but in the future we might want to throw
-    // throw new AuthServerDiscoveryError(pdsUrl, error as Error);
-
-    // Fallback: assume PDS is the auth server
-    console.warn(`Failed to discover auth server from ${pdsUrl}, using PDS as auth server:`, error);
-    return pdsUrl;
+    throw new AuthServerDiscoveryError(pdsUrl, error as Error);
   }
 }
 
@@ -324,12 +319,18 @@ export async function discoverOAuthEndpointsFromPDS(
   revocationEndpoint?: string;
 }> {
   try {
-    // Step 1: Discover authentication server from PDS
+    // Step 1: Try to discover authentication server from PDS
     const authServer = await discoverAuthenticationServer(pdsUrl);
-
+    
     // Step 2: Discover OAuth endpoints from authentication server
     return await discoverOAuthEndpointsFromAuthServer(authServer);
-  } catch (error) {
-    throw new PDSDiscoveryError(pdsUrl, error as Error);
+  } catch (authServerError) {
+    // If auth server discovery fails, try using PDS directly as fallback
+    try {
+      console.warn(`Auth server discovery failed for ${pdsUrl}, trying PDS directly:`, authServerError);
+      return await discoverOAuthEndpointsFromAuthServer(pdsUrl);
+    } catch (pdsError) {
+      throw new PDSDiscoveryError(pdsUrl, pdsError as Error);
+    }
   }
 }
