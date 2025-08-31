@@ -101,7 +101,10 @@ export interface OAuthClientConfig {
   slingshotUrl?: string;
 }
 
-export interface AuthorizationUrlOptions {
+/**
+ * Authorization options matching @atproto/oauth-client interface
+ */
+export interface AuthorizeOptions {
   /**
    * State parameter for CSRF protection (optional, auto-generated if not provided)
    */
@@ -116,33 +119,36 @@ export interface AuthorizationUrlOptions {
    * Login hint for the authorization server
    */
   loginHint?: string;
+
+  /**
+   * AbortSignal for canceling authorization
+   */
+  signal?: AbortSignal;
 }
 
-export interface CallbackParams {
+/**
+ * Callback options matching @atproto/oauth-client interface
+ */
+export interface CallbackOptions {
   /**
-   * Authorization code from OAuth callback
+   * Redirect URI override (optional)
    */
-  code: string;
-
-  /**
-   * State parameter for CSRF validation
-   */
-  state?: string;
-
-  /**
-   * Error code if authorization failed
-   */
-  error?: string;
-
-  /**
-   * Error description if authorization failed
-   */
-  error_description?: string;
+  redirect_uri?: string;
 }
 
-export interface CallbackResult {
+/**
+ * OAuth session interface matching @atproto/oauth-client
+ */
+export interface OAuthSession {
+  did: string;
+  handle?: string;
+  accessToken: string;
+  refreshToken?: string;
+  sub: string;
+  aud: string;
+
   /**
-   * Authenticated session
+   * Make authenticated request with automatic DPoP header
    */
-  session: SessionData;
+  makeRequest(method: string, url: string, options?: RequestInit): Promise<Response>;
 }

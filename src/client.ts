@@ -5,10 +5,10 @@
 
 import { isValidHandle } from "npm:@atproto/syntax@0.4.0";
 import type {
-  AuthorizationUrlOptions,
-  CallbackParams,
-  CallbackResult,
+  AuthorizeOptions,
+  CallbackOptions,
   OAuthClientConfig,
+  OAuthSession,
   OAuthStorage,
 } from "./types.ts";
 import { Session, type SessionData } from "./session.ts";
@@ -124,16 +124,16 @@ export class OAuthClient {
    * ```
    */
   async authorize(
-    handle: string,
-    options?: AuthorizationUrlOptions,
-  ): Promise<string> {
-    if (!isValidHandle(handle)) {
-      throw new InvalidHandleError(handle);
+    input: string,
+    options?: AuthorizeOptions,
+  ): Promise<URL> {
+    if (!isValidHandle(input)) {
+      throw new InvalidHandleError(input);
     }
 
     try {
       // Resolve handle to get user's PDS and DID
-      const resolved = await this.handleResolver(handle);
+      const resolved = await this.handleResolver(input);
 
       // Discover OAuth endpoints from the PDS
       const oauthEndpoints = await discoverOAuthEndpointsFromPDS(resolved.pdsUrl);
@@ -148,7 +148,7 @@ export class OAuthClient {
       await this.storage.set(`pkce:${state}`, {
         codeVerifier,
         authServer,
-        handle,
+        handle: input,
         did: resolved.did,
         pdsUrl: resolved.pdsUrl,
       }, { ttl: 600 }); // 10 minutes
@@ -160,11 +160,11 @@ export class OAuthClient {
           codeChallenge,
           state,
           scope: options?.scope ?? "atproto transition:generic",
-          loginHint: options?.loginHint ?? handle,
+          loginHint: options?.loginHint ?? input,
         },
       );
 
-      return parUrl;
+      return new URL(parUrl);
     } catch (error) {
       if (error instanceof OAuthError) {
         throw error;
@@ -202,16 +202,21 @@ export class OAuthClient {
    * console.log("Authenticated as:", session.handle);
    * ```
    */
-  async callback(params: CallbackParams): Promise<CallbackResult> {
-    if (params.error) {
-      throw new AuthorizationError(params.error, params.error_description);
+  async callback(
+    params: URLSearchParams,
+    _options?: CallbackOptions,
+  ): Promise<{ session: OAuthSession; state: string | null }> {
+    const error = params.get("error");
+    if (error) {
+      throw new AuthorizationError(error, params.get("error_description") || undefined);
     }
 
-    if (!params.code) {
+    const code = params.get("code");
+    if (!code) {
       throw new OAuthError("Missing authorization code in callback");
     }
 
-    const state = params.state ?? "";
+    const state = params.get("state") || "";
 
     // Retrieve PKCE data
     const pkceData = await this.storage.get<{
@@ -232,7 +237,7 @@ export class OAuthClient {
       // Exchange authorization code for tokens
       const tokens = await this.exchangeCodeForTokens(
         pkceData.authServer,
-        params.code,
+        code,
         pkceData.codeVerifier,
         dpopKeys,
       );
@@ -254,7 +259,7 @@ export class OAuthClient {
       // Clean up PKCE data
       await this.storage.delete(`pkce:${state}`);
 
-      return { session: session.toJSON() };
+      return { session: session as OAuthSession, state: params.get("state") };
     } catch (error) {
       // Clean up PKCE data even on error
       await this.storage.delete(`pkce:${state}`);

@@ -3,7 +3,7 @@
  * @module
  */
 
-import type { SessionData } from "./types.ts";
+import type { OAuthSession, SessionData } from "./types.ts";
 import { importPrivateKeyFromJWK, makeDPoPRequest } from "./dpop.ts";
 import { SessionError } from "./errors.ts";
 
@@ -45,7 +45,7 @@ export type { SessionData };
  * const restored = Session.fromJSON(sessionData);
  * ```
  */
-export class Session {
+export class Session implements OAuthSession {
   constructor(private data: SessionData) {}
 
   /**
@@ -60,6 +60,20 @@ export class Session {
    */
   get handle(): string {
     return this.data.handle;
+  }
+
+  /**
+   * Subject (same as DID for AT Protocol)
+   */
+  get sub(): string {
+    return this.data.did;
+  }
+
+  /**
+   * Audience (PDS URL)
+   */
+  get aud(): string {
+    return this.data.pdsUrl;
   }
 
   /**
@@ -140,10 +154,7 @@ export class Session {
   async makeRequest(
     method: string,
     url: string,
-    options?: {
-      body?: string;
-      headers?: HeadersInit;
-    },
+    options?: RequestInit,
   ): Promise<Response> {
     try {
       // Import private key for signing
@@ -157,7 +168,7 @@ export class Session {
         this.data.accessToken,
         privateKey,
         this.data.dpopPublicKeyJWK,
-        options?.body,
+        options?.body as string,
         options?.headers,
       );
     } catch (error) {

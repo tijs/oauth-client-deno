@@ -42,6 +42,11 @@ Deno.test("Session - Constructor and Basic Properties", async (t) => {
     assertEquals(session.accessToken, "test_access_token");
     assertEquals(session.refreshToken, "test_refresh_token");
   });
+
+  await t.step("should expose OAuthSession interface properties", () => {
+    assertEquals(session.sub, "did:plc:test123"); // same as DID
+    assertEquals(session.aud, "https://test.bsky.social"); // same as pdsUrl
+  });
 });
 
 Deno.test("Session - Expiration Logic", async (t) => {

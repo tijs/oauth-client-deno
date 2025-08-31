@@ -41,10 +41,11 @@ export {
   SlingshotResolver,
 } from "./src/resolvers.ts";
 export type {
-  AuthorizationUrlOptions,
-  CallbackParams,
-  CallbackResult,
+  AuthorizeOptions,
+  CallbackOptions,
   HandleResolver,
   OAuthClientConfig,
+  OAuthSession,
+  OAuthStorage,
 } from "./src/types.ts";
 export * from "./src/errors.ts";
