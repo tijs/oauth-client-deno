@@ -1,14 +1,28 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@panva/jose@^6.1.0": "6.1.0",
+    "jsr:@std/assert@*": "1.0.13",
+    "jsr:@std/internal@^1.0.6": "1.0.8",
     "npm:@atproto/syntax@0.4.0": "0.4.0"
+  },
+  "jsr": {
+    "@panva/jose@6.1.0": {
+      "integrity": "9ecffef33d822f4326341ace652bf30eef30d4dc9f7134faf7901e5480c2e761"
+    },
+    "@std/assert@1.0.13": {
+      "integrity": "ae0d31e41919b12c656c742b22522c32fb26ed0cba32975cb0de2a273cb68b29",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.8": {
+      "integrity": "fc66e846d8d38a47cffd274d80d2ca3f0de71040f855783724bb6b87f60891f5"
+    }
   },
   "npm": {
     "@atproto/syntax@0.4.0": {
       "integrity": "sha512-b9y5ceHS8YKOfP3mdKmwAx5yVj9294UN7FG2XzP6V5aKUdFazEYRnR9m5n5ZQFKa3GNvz7de9guZCJ/sUTcOAA=="
     }
-  },
-  "remote": {
-    "https://esm.sh/jose@5.2.0": "d26dace73b072827f432acc81ccfb158d906272f2001d408bdcaad56542d8ee2"
   }
 }

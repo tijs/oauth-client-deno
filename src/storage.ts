@@ -64,7 +64,13 @@ export class MemoryStorage implements OAuthStorage {
  * Users can implement similar patterns for their storage backend
  */
 export class SQLiteStorage implements OAuthStorage {
-  constructor(private sqlite: { execute: (query: { sql: string; args: unknown[] }) => Promise<{ columns: string[]; rows: unknown[][] }> }) {}
+  constructor(
+    private sqlite: {
+      execute: (
+        query: { sql: string; args: unknown[] },
+      ) => Promise<{ columns: string[]; rows: unknown[][] }>;
+    },
+  ) {}
 
   async get<T = unknown>(key: string): Promise<T | null> {
     const result = await this.sqlite.execute({

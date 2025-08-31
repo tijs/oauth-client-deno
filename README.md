@@ -112,11 +112,7 @@ const customStorage = {
 Configure how AT Protocol handles are resolved to DIDs and PDS URLs:
 
 ```typescript
-import {
-  CustomResolver,
-  DirectoryResolver,
-  SlingshotResolver,
-} from "jsr:@tijs/oauth-client-deno";
+import { CustomResolver, DirectoryResolver, SlingshotResolver } from "jsr:@tijs/oauth-client-deno";
 
 // Default: Slingshot with fallbacks
 const client = new OAuthClient({

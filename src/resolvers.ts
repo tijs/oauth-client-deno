@@ -193,7 +193,9 @@ async function resolvePdsFromDid(did: string): Promise<string> {
     const didDocument = await response.json();
 
     // Look for AT Protocol service in DID document
-    const service = didDocument.service?.find((s: { type?: string; id?: string; serviceEndpoint?: unknown }) =>
+    const service = didDocument.service?.find((
+      s: { type?: string; id?: string; serviceEndpoint?: unknown },
+    ) =>
       s.type === "AtprotoPersonalDataServer" ||
       s.id === "#atproto_pds"
     );

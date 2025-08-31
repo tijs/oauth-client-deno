@@ -3,7 +3,7 @@
  * Uses Web Crypto API for Deno compatibility
  */
 
-import { exportJWK, SignJWT } from "https://esm.sh/jose@5.2.0";
+import { exportJWK, SignJWT } from "jsr:@panva/jose@^6.1.0";
 import { DPoPError } from "./errors.ts";
 
 export interface DPoPKeyPair {

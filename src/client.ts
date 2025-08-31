@@ -304,15 +304,15 @@ export class OAuthClient {
 
   /**
    * Refresh access token using refresh token.
-   * 
+   *
    * Exchanges the current refresh token for new access and refresh tokens using
    * the OAuth 2.0 refresh_token grant type with DPoP authentication. The session
    * is updated in-place with the new token data.
-   * 
+   *
    * @param session Current session with valid refresh token
    * @returns New session with refreshed tokens
    * @throws {TokenExchangeError} When token refresh fails or refresh token is invalid
-   * 
+   *
    * @example
    * ```ts
    * if (session.isExpired) {

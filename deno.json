@@ -17,11 +17,25 @@
     "web-crypto"
   ],
   "exports": "./mod.ts",
+  "publish": {
+    "exclude": [
+      ".github/",
+      ".vscode/",
+      "coverage/",
+      "test/",
+      "*.test.ts",
+      "*.bench.ts",
+      ".gitignore"
+    ]
+  },
   "tasks": {
     "test": "deno test --allow-net --allow-read",
-    "check": "deno check mod.ts",
-    "fmt": "deno fmt",
-    "lint": "deno lint"
+    "check": "deno check **/*.ts",
+    "fmt": "deno fmt --check",
+    "fmt:fix": "deno fmt",
+    "lint": "deno lint",
+    "ci": "deno task fmt && deno task lint && deno task check && deno task test",
+    "prepare": "deno task ci"
   },
   "fmt": {
     "useTabs": false,
@@ -34,7 +48,12 @@
   "lint": {
     "rules": {
       "tags": ["recommended"]
-    }
+    },
+    "exclude": [
+      "coverage/",
+      "dist/",
+      "build/"
+    ]
   },
   "compilerOptions": {
     "strict": true,

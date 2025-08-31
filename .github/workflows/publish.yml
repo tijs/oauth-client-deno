@@ -3,31 +3,31 @@ name: Publish to JSR
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: read
       id-token: write # Required for provenance generation
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
           deno-version: v1.x
-          
+
       - name: Verify code quality
         run: |
           deno fmt --check
           deno lint
-          deno check mod.ts
-          
+          deno check **/*.ts
+
       - name: Run tests (if any)
         run: |
           if [ -f "test" ] || ls *test*.ts 1> /dev/null 2>&1; then
@@ -36,6 +36,6 @@ jobs:
             echo "No tests found, skipping test step"
           fi
         continue-on-error: false
-        
+
       - name: Publish to JSR
         run: deno publish
