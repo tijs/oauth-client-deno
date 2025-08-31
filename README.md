@@ -264,14 +264,14 @@ interface Storage {
 
 ## 🆚 Differences from @atproto/oauth-client-node
 
-| Feature               | @atproto/oauth-client-node      | @tijs/oauth-client-deno                 |
-| --------------------- | ------------------------------- | --------------------------------------- |
-| **Runtime**           | Node.js only                    | Deno, Browser, Web Standards            |
-| **Crypto**            | Node.js crypto APIs             | Web Crypto API (cross-platform)         |
-| **Primary Use Case**  | Server-side Node.js apps        | Deno apps, edge workers, browsers       |
-| **Dependencies**      | Node.js built-ins + jose        | Web Standards + jose (JSR)              |
-| **Handle Resolution** | Configurable resolvers          | Slingshot-first with fallbacks          |
-| **Storage**           | Flexible sessionStore interface | Simple Storage interface + built-ins    |
+| Feature               | @atproto/oauth-client-node      | @tijs/oauth-client-deno              |
+| --------------------- | ------------------------------- | ------------------------------------ |
+| **Runtime**           | Node.js only                    | Deno, Browser, Web Standards         |
+| **Crypto**            | Node.js crypto APIs             | Web Crypto API (cross-platform)      |
+| **Primary Use Case**  | Server-side Node.js apps        | Deno apps, edge workers, browsers    |
+| **Dependencies**      | Node.js built-ins + jose        | Web Standards + jose (JSR)           |
+| **Handle Resolution** | Configurable resolvers          | Slingshot-first with fallbacks       |
+| **Storage**           | Flexible sessionStore interface | Simple Storage interface + built-ins |
 
 > **Note**: Both clients provide full AT Protocol OAuth + DPoP support and maintain API compatibility. The main difference is runtime compatibility - choose based on your deployment environment.
 
