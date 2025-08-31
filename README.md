@@ -4,6 +4,8 @@ A **Deno-compatible** AT Protocol OAuth client that serves as a drop-in replacem
 
 Built specifically to solve crypto compatibility issues between Node.js-specific AT Protocol OAuth clients and Deno runtime environments. Uses Web Crypto API exclusively for maximum cross-platform compatibility.
 
+> **⚠️ Opinionated Design**: This client uses **Slingshot** as the default handle resolver with fallbacks to other methods. Slingshot is an AT Protocol service that helps with handle resolution and OAuth endpoint discovery. If your use case requires avoiding third-party services or you need complete control over handle resolution, this may not be the right client for you. See [Handle Resolution](#handle-resolution) for alternatives.
+
 ## ✨ Key Features
 
 - 🦕 **Deno Native**: Built specifically for Deno using Web Crypto API
@@ -109,30 +111,44 @@ const customStorage = {
 
 ### Handle Resolution
 
-Configure how AT Protocol handles are resolved to DIDs and PDS URLs:
+Configure how AT Protocol handles are resolved to DIDs and PDS URLs. **By default, this client uses Slingshot** (https://slingshot.microcosm.blue) as the primary resolver with automatic fallbacks.
+
+#### Default Behavior (Slingshot-first)
 
 ```typescript
 import { CustomResolver, DirectoryResolver, SlingshotResolver } from "jsr:@tijs/oauth-client-deno";
 
-// Default: Slingshot with fallbacks
+// Default: Slingshot with fallbacks to directory and direct resolution
 const client = new OAuthClient({
   // ... other config
-  // Uses default Slingshot resolver automatically
+  // Uses Slingshot resolver automatically with fallbacks
 });
 
+// Resolution order:
+// 1. Slingshot resolveMiniDoc (https://slingshot.microcosm.blue/xrpc/com.bad-example.identity.resolveMiniDoc)
+// 2. Slingshot standard (https://slingshot.microcosm.blue/xrpc/com.atproto.identity.resolveHandle)
+// 3. Bluesky API (https://bsky.social/xrpc/com.atproto.identity.resolveHandle)
+// 4. Direct handle lookup (https://handle/.well-known/atproto-did)
+```
+
+#### Alternative Resolution Strategies
+
+If Slingshot doesn't fit your use case, you can configure alternative resolvers:
+
+```typescript
 // Custom Slingshot URL
 const client = new OAuthClient({
   // ... other config
   slingshotUrl: "https://my-custom-slingshot.example.com",
 });
 
-// Use directory-first resolution
+// Use Bluesky API-first resolution (avoids Slingshot)
 const client = new OAuthClient({
   // ... other config
-  handleResolver: new DirectoryResolver(),
+  handleResolver: new DirectoryResolver(), // Only uses bsky.social API
 });
 
-// Completely custom resolution logic
+// Completely custom resolution logic (full control)
 const client = new OAuthClient({
   // ... other config
   handleResolver: new CustomResolver(async (handle) => {
@@ -143,6 +159,8 @@ const client = new OAuthClient({
   }),
 });
 ```
+
+> **Why Slingshot?** Slingshot is a production-grade cache of AT Protocol data that provides faster handle resolution and better reliability, especially during high-traffic periods. It uses the `resolveMiniDoc` endpoint which returns both DID and PDS URL in a single request, reducing the need for multiple lookups. However, it does introduce a dependency on a third-party service. The fallback mechanisms ensure your application continues to work even if Slingshot is unavailable.
 
 ## 🏗️ Advanced Usage
 
@@ -286,12 +304,32 @@ deno test --allow-net --allow-read
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+## 🧩 Why This Package Exists
+
+The official `@atproto/oauth-client-node` package has fundamental compatibility issues with Deno runtime environments. This package was created to solve these specific problems:
+
+### Root Cause Analysis
+
+1. **Node.js-Specific Dependencies**: The official package relies on Node.js-specific crypto dependencies (`@atproto/jwk-jose`, `@atproto/jwk-webcrypto`) that don't work in Deno.
+
+2. **Jose Library Compatibility**: The underlying jose library (when used through Node.js-specific packages) throws `JOSENotSupported: Unsupported key curve for this operation` errors in Deno, specifically when generating ECDSA P-256 keys for DPoP (Demonstrating Proof of Possession) JWT operations.
+
+3. **DPoP Implementation Problem**: AT Protocol OAuth requires DPoP proofs using ES256 signatures with ECDSA P-256 curves. The Node.js crypto implementations in the official client don't translate to Deno's Web Crypto API properly.
+
+### Our Solution
+
+This package solves these issues by:
+
+- **Using Web Crypto API directly** (`crypto.subtle.generateKey`) instead of Node.js crypto
+- **JSR-native jose imports** (`jsr:@panva/jose`) instead of Node.js-specific versions
+- **Manual ECDSA P-256 key generation** with explicit curve specification (`namedCurve: "P-256"`)
+- **Direct DPoP JWT creation** using Web Crypto compatible `SignJWT` operations
+- **Cross-platform compatibility** that works in Deno, browsers, and other Web Standards environments
+
+The implementation maintains full API compatibility with the original Node.js client while providing a native Web Standards foundation.
+
 ## 🙏 Acknowledgments
 
 - Built to solve compatibility issues with `@atproto/oauth-client-node` in Deno
 - Inspired by the AT Protocol OAuth specification and reference implementations
 - Thanks to the Bluesky team for the AT Protocol ecosystem
-
----
-
-**Note**: This package was created specifically to address the "Unsupported key curve" errors encountered when using the official AT Protocol OAuth client in Deno environments. It maintains API compatibility while providing a native Deno implementation using Web Crypto APIs.

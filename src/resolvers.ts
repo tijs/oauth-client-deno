@@ -9,7 +9,7 @@ import type { HandleResolver } from "./types.ts";
  * Default Slingshot-based handle resolver
  */
 export class SlingshotResolver implements HandleResolver {
-  constructor(private slingshotUrl: string = "https://slingshot.bsky.app") {}
+  constructor(private slingshotUrl: string = "https://slingshot.microcosm.blue") {}
 
   async resolve(handle: string): Promise<{ did: string; pdsUrl: string }> {
     try {
@@ -23,28 +23,52 @@ export class SlingshotResolver implements HandleResolver {
   private async resolveHandleWithSlingshot(
     handle: string,
   ): Promise<{ did: string; pdsUrl: string }> {
-    const response = await fetch(
-      `${this.slingshotUrl}/api/com.atproto.identity.resolveHandle?handle=${
-        encodeURIComponent(handle)
-      }`,
-    );
+    try {
+      // Use Slingshot's resolveMiniDoc endpoint which returns both DID and PDS URL
+      const response = await fetch(
+        `${this.slingshotUrl}/xrpc/com.bad-example.identity.resolveMiniDoc?identifier=${
+          encodeURIComponent(handle)
+        }`,
+      );
 
-    if (!response.ok) {
-      throw new Error(`Slingshot resolver failed: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Slingshot resolver failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.did || !data.pds) {
+        throw new Error("Incomplete data in Slingshot response");
+      }
+
+      return {
+        did: data.did,
+        pdsUrl: data.pds,
+      };
+    } catch (_error) {
+      // Fallback to standard AT Protocol endpoint if resolveMiniDoc fails
+      const response = await fetch(
+        `${this.slingshotUrl}/xrpc/com.atproto.identity.resolveHandle?handle=${
+          encodeURIComponent(handle)
+        }`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`Slingshot resolver failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.did) {
+        throw new Error("No DID found in Slingshot response");
+      }
+
+      // Get PDS URL from DID document
+      const pdsUrl = await resolvePdsFromDid(data.did);
+
+      return {
+        did: data.did,
+        pdsUrl,
+      };
     }
-
-    const data = await response.json();
-    if (!data.did) {
-      throw new Error("No DID found in Slingshot response");
-    }
-
-    // Get PDS URL from DID document
-    const pdsUrl = await resolvePdsFromDid(data.did);
-
-    return {
-      did: data.did,
-      pdsUrl,
-    };
   }
 
   private async fallbackResolve(
@@ -52,7 +76,7 @@ export class SlingshotResolver implements HandleResolver {
   ): Promise<{ did: string; pdsUrl: string }> {
     // Try multiple resolution methods in order of preference
     const fallbackResolvers = [
-      () => this.resolveHandleWithDirectory(handle),
+      () => this.resolveHandleWithBlueskyAPI(handle),
       () => this.resolveHandleDirectly(handle),
     ];
 
@@ -67,22 +91,22 @@ export class SlingshotResolver implements HandleResolver {
     throw new HandleResolutionError(handle);
   }
 
-  private async resolveHandleWithDirectory(
+  private async resolveHandleWithBlueskyAPI(
     handle: string,
   ): Promise<{ did: string; pdsUrl: string }> {
     const response = await fetch(
-      `https://plc.directory/xrpc/com.atproto.identity.resolveHandle?handle=${
+      `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${
         encodeURIComponent(handle)
       }`,
     );
 
     if (!response.ok) {
-      throw new Error(`Directory resolver failed: ${response.status}`);
+      throw new Error(`Bluesky API resolver failed: ${response.status}`);
     }
 
     const data = await response.json();
     if (!data.did) {
-      throw new Error("No DID found in directory response");
+      throw new Error("No DID found in Bluesky API response");
     }
 
     const pdsUrl = await resolvePdsFromDid(data.did);
@@ -124,12 +148,12 @@ export class SlingshotResolver implements HandleResolver {
 }
 
 /**
- * Directory-first handle resolver (alternative to Slingshot)
+ * Bluesky API-first handle resolver (alternative to Slingshot)
  */
 export class DirectoryResolver implements HandleResolver {
   async resolve(handle: string): Promise<{ did: string; pdsUrl: string }> {
     const response = await fetch(
-      `https://plc.directory/xrpc/com.atproto.identity.resolveHandle?handle=${
+      `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${
         encodeURIComponent(handle)
       }`,
     );
@@ -137,13 +161,13 @@ export class DirectoryResolver implements HandleResolver {
     if (!response.ok) {
       throw new HandleResolutionError(
         handle,
-        new Error(`Directory lookup failed: ${response.status}`),
+        new Error(`Bluesky API lookup failed: ${response.status}`),
       );
     }
 
     const data = await response.json();
     if (!data.did) {
-      throw new HandleResolutionError(handle, new Error("No DID found in directory response"));
+      throw new HandleResolutionError(handle, new Error("No DID found in Bluesky API response"));
     }
 
     const pdsUrl = await resolvePdsFromDid(data.did);

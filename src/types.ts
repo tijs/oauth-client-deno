@@ -95,7 +95,7 @@ export interface OAuthClientConfig {
   handleResolver?: HandleResolver;
 
   /**
-   * Slingshot resolver URL (optional, defaults to https://slingshot.bsky.app)
+   * Slingshot resolver URL (optional, defaults to https://slingshot.microcosm.blue)
    * Only used when using the default handle resolver
    */
   slingshotUrl?: string;
