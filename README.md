@@ -267,12 +267,13 @@ interface Storage {
 | Feature               | @atproto/oauth-client-node      | @tijs/oauth-client-deno                 |
 | --------------------- | ------------------------------- | --------------------------------------- |
 | **Runtime**           | Node.js only                    | Deno, Browser, Web Standards            |
-| **Crypto**            | Node.js crypto + jose           | Web Crypto API + jose                   |
-| **DPoP**              | Node.js-specific implementation | Cross-platform Web Crypto               |
-| **Handle Resolution** | Fixed resolver                  | Configurable with multiple options      |
-| **Storage**           | Custom sessionStore interface   | Storage interface with built-in options |
-| **Import**            | CommonJS/ESM                    | ESM only                                |
-| **Dependencies**      | Node.js built-ins               | Zero Node.js dependencies               |
+| **Crypto**            | Node.js crypto APIs             | Web Crypto API (cross-platform)         |
+| **Primary Use Case**  | Server-side Node.js apps        | Deno apps, edge workers, browsers       |
+| **Dependencies**      | Node.js built-ins + jose        | Web Standards + jose (JSR)              |
+| **Handle Resolution** | Configurable resolvers          | Slingshot-first with fallbacks          |
+| **Storage**           | Flexible sessionStore interface | Simple Storage interface + built-ins    |
+
+> **Note**: Both clients provide full AT Protocol OAuth + DPoP support and maintain API compatibility. The main difference is runtime compatibility - choose based on your deployment environment.
 
 ## 🔧 Development
 
