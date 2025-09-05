@@ -1,16 +1,43 @@
 /**
- * Default and configurable resolvers for AT Protocol handle resolution and PDS discovery
+ * @fileoverview Handle resolution and PDS discovery implementations for AT Protocol
+ * @module
  */
 
 import { AuthServerDiscoveryError, HandleResolutionError, PDSDiscoveryError } from "./errors.ts";
 import type { HandleResolver } from "./types.ts";
 
 /**
- * Default Slingshot-based handle resolver
+ * Slingshot-based handle resolver for AT Protocol.
+ *
+ * Uses the Slingshot service to resolve handles to DID and PDS URLs. Slingshot
+ * provides fast handle resolution with fallback to standard AT Protocol methods.
+ * This is the default resolver used by the OAuth client.
+ *
+ * @example
+ * ```ts
+ * const resolver = new SlingshotResolver("https://custom-slingshot.com");
+ * const { did, pdsUrl } = await resolver.resolve("alice.bsky.social");
+ * console.log(`DID: ${did}, PDS: ${pdsUrl}`);
+ * ```
  */
 export class SlingshotResolver implements HandleResolver {
+  /**
+   * Create a new Slingshot resolver.
+   *
+   * @param slingshotUrl - Custom Slingshot service URL (defaults to official instance)
+   */
   constructor(private slingshotUrl: string = "https://slingshot.microcosm.blue") {}
 
+  /**
+   * Resolve an AT Protocol handle to DID and PDS URL.
+   *
+   * Uses Slingshot's fast resolution service with fallback to standard AT Protocol
+   * methods if Slingshot is unavailable.
+   *
+   * @param handle - AT Protocol handle to resolve (e.g., "alice.bsky.social")
+   * @returns Promise resolving to DID and PDS URL
+   * @throws {HandleResolutionError} When handle cannot be resolved
+   */
   async resolve(handle: string): Promise<{ did: string; pdsUrl: string }> {
     try {
       return await this.resolveHandleWithSlingshot(handle);
@@ -148,9 +175,27 @@ export class SlingshotResolver implements HandleResolver {
 }
 
 /**
- * Bluesky API-first handle resolver (alternative to Slingshot)
+ * AT Protocol Directory handle resolver using Bluesky's API.
+ *
+ * Uses the official Bluesky API to resolve handles to DID and then looks up
+ * the PDS URL from the DID document. This is an alternative to Slingshot
+ * that uses standard AT Protocol methods.
+ *
+ * @example
+ * ```ts
+ * const resolver = new DirectoryResolver();
+ * const { did, pdsUrl } = await resolver.resolve("alice.bsky.social");
+ * console.log(`Resolved via Directory: ${did} -> ${pdsUrl}`);
+ * ```
  */
 export class DirectoryResolver implements HandleResolver {
+  /**
+   * Resolve an AT Protocol handle to DID and PDS URL using Bluesky API.
+   *
+   * @param handle - AT Protocol handle to resolve (e.g., "alice.bsky.social")
+   * @returns Promise resolving to DID and PDS URL
+   * @throws {HandleResolutionError} When handle cannot be resolved
+   */
   async resolve(handle: string): Promise<{ did: string; pdsUrl: string }> {
     const response = await fetch(
       `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${
@@ -180,13 +225,44 @@ export class DirectoryResolver implements HandleResolver {
 }
 
 /**
- * Custom resolver that allows complete control over handle resolution
+ * Custom handle resolver with user-provided resolution function.
+ *
+ * Allows complete control over handle resolution by providing a custom
+ * function. Useful for implementing custom resolution logic, testing,
+ * or integrating with alternative handle resolution services.
+ *
+ * @example
+ * ```ts
+ * const customResolver = new CustomResolver(async (handle) => {
+ *   // Custom resolution logic
+ *   const did = await myCustomHandleService.resolve(handle);
+ *   const pdsUrl = await myCustomPdsService.getPds(did);
+ *   return { did, pdsUrl };
+ * });
+ *
+ * const client = new OAuthClient({
+ *   // ... other config
+ *   handleResolver: customResolver,
+ * });
+ * ```
  */
 export class CustomResolver implements HandleResolver {
+  /**
+   * Create a custom resolver with provided resolution function.
+   *
+   * @param resolverFunction - Function that resolves handles to DID and PDS URL
+   */
   constructor(
     private resolverFunction: (handle: string) => Promise<{ did: string; pdsUrl: string }>,
   ) {}
 
+  /**
+   * Resolve handle using the provided custom function.
+   *
+   * @param handle - AT Protocol handle to resolve
+   * @returns Promise resolving to DID and PDS URL
+   * @throws {HandleResolutionError} When custom resolver function fails
+   */
   async resolve(handle: string): Promise<{ did: string; pdsUrl: string }> {
     try {
       return await this.resolverFunction(handle);
@@ -197,7 +273,21 @@ export class CustomResolver implements HandleResolver {
 }
 
 /**
- * Create default handle resolver with optional custom Slingshot URL
+ * Create the default handle resolver with optional custom Slingshot URL.
+ *
+ * Returns a {@link SlingshotResolver} configured with the specified Slingshot
+ * service URL. This is the recommended resolver for most applications.
+ *
+ * @param slingshotUrl - Optional custom Slingshot service URL
+ * @returns Configured Slingshot resolver instance
+ * @example
+ * ```ts
+ * // Use default Slingshot instance
+ * const resolver = createDefaultResolver();
+ *
+ * // Use custom Slingshot instance
+ * const customResolver = createDefaultResolver("https://my-slingshot.example.com");
+ * ```
  */
 export function createDefaultResolver(slingshotUrl?: string): HandleResolver {
   return new SlingshotResolver(slingshotUrl);
@@ -243,7 +333,20 @@ async function resolvePdsFromDid(did: string): Promise<string> {
 }
 
 /**
- * Discover authentication server from PDS metadata
+ * Discover OAuth authentication server URL from PDS metadata.
+ *
+ * Fetches the OAuth protected resource metadata from the PDS to determine
+ * the authentication server URL. This is used for custom domain setups
+ * where the OAuth server may be separate from the PDS.
+ *
+ * @param pdsUrl - The PDS URL to query for OAuth metadata
+ * @returns Promise resolving to the authentication server URL
+ * @throws {AuthServerDiscoveryError} When authentication server cannot be discovered
+ * @example
+ * ```ts
+ * const authServer = await discoverAuthenticationServer("https://custom-pds.example.com");
+ * console.log("Auth server:", authServer); // "https://oauth.example.com"
+ * ```
  */
 export async function discoverAuthenticationServer(
   pdsUrl: string,
@@ -274,7 +377,20 @@ export async function discoverAuthenticationServer(
 }
 
 /**
- * Discover OAuth endpoints from an authentication server
+ * Discover OAuth endpoints from an authentication server.
+ *
+ * Fetches the OAuth authorization server metadata to get the endpoints
+ * needed for the OAuth flow (authorization, token, and optionally revocation).
+ *
+ * @param authServerUrl - The authentication server URL
+ * @returns Promise resolving to OAuth endpoints
+ * @throws {PDSDiscoveryError} When OAuth endpoints cannot be discovered
+ * @example
+ * ```ts
+ * const endpoints = await discoverOAuthEndpointsFromAuthServer("https://oauth.example.com");
+ * console.log("Auth endpoint:", endpoints.authorizationEndpoint);
+ * console.log("Token endpoint:", endpoints.tokenEndpoint);
+ * ```
  */
 export async function discoverOAuthEndpointsFromAuthServer(
   authServerUrl: string,
@@ -309,7 +425,21 @@ export async function discoverOAuthEndpointsFromAuthServer(
 }
 
 /**
- * Discover OAuth endpoints from a PDS (complete flow)
+ * Discover OAuth endpoints from a PDS (complete discovery flow).
+ *
+ * Performs the complete OAuth endpoint discovery process by first discovering
+ * the authentication server from the PDS, then fetching the OAuth endpoints
+ * from that server. This is the main function used during OAuth authorization.
+ *
+ * @param pdsUrl - The PDS URL to discover OAuth endpoints for
+ * @returns Promise resolving to OAuth endpoints
+ * @throws {PDSDiscoveryError} When OAuth endpoints cannot be discovered
+ * @example
+ * ```ts
+ * const endpoints = await discoverOAuthEndpointsFromPDS("https://bsky.social");
+ * console.log("Authorization URL:", endpoints.authorizationEndpoint);
+ * console.log("Token endpoint:", endpoints.tokenEndpoint);
+ * ```
  */
 export async function discoverOAuthEndpointsFromPDS(
   pdsUrl: string,

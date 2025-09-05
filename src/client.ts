@@ -272,9 +272,23 @@ export class OAuthClient {
   }
 
   /**
-   * Restore session from storage
-   * @param sessionId Session identifier
-   * @returns Session if found and valid, null otherwise
+   * Restore an authenticated session from storage.
+   *
+   * Retrieves a previously stored session by its ID and automatically refreshes
+   * the access token if it has expired. Returns null if the session doesn't exist
+   * or cannot be restored.
+   *
+   * @param sessionId - Unique identifier for the stored session
+   * @returns Promise resolving to restored session, or null if not found
+   * @example
+   * ```ts
+   * const session = await client.restore("user-session-123");
+   * if (session) {
+   *   console.log("Welcome back,", session.handle);
+   * } else {
+   *   console.log("Please log in again");
+   * }
+   * ```
    */
   async restore(sessionId: string): Promise<Session | null> {
     try {
@@ -299,9 +313,20 @@ export class OAuthClient {
   }
 
   /**
-   * Store session in storage
-   * @param sessionId Session identifier
-   * @param session Session to store
+   * Store an authenticated session in storage for later retrieval.
+   *
+   * Persists the session data using the configured storage backend so it can
+   * be restored later with {@link restore}. The session is serialized before
+   * storage.
+   *
+   * @param sessionId - Unique identifier for the session
+   * @param session - Authenticated session to store
+   * @example
+   * ```ts
+   * const { session } = await client.callback(params);
+   * await client.store("user-session-123", session);
+   * console.log("Session stored successfully");
+   * ```
    */
   async store(sessionId: string, session: Session): Promise<void> {
     await this.storage.set(`session:${sessionId}`, session.toJSON());
@@ -345,9 +370,19 @@ export class OAuthClient {
   }
 
   /**
-   * Revoke session tokens and clean up
-   * @param sessionId Session identifier
-   * @param session Session to revoke
+   * Sign out a user session by revoking tokens and cleaning up storage.
+   *
+   * Attempts to revoke the refresh token at the OAuth server (best effort)
+   * and removes the session from local storage. This ensures proper cleanup
+   * and prevents token reuse.
+   *
+   * @param sessionId - Session identifier to remove from storage
+   * @param session - Session containing tokens to revoke
+   * @example
+   * ```ts
+   * await client.signOut("user-session-123", session);
+   * console.log("User signed out successfully");
+   * ```
    */
   async signOut(sessionId: string, session: Session): Promise<void> {
     try {
