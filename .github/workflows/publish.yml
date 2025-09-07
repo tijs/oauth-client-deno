@@ -28,14 +28,8 @@ jobs:
           deno lint
           deno check **/*.ts
 
-      - name: Run tests (if any)
-        run: |
-          if [ -f "test" ] || ls *test*.ts 1> /dev/null 2>&1; then
-            deno test --allow-net --allow-read
-          else
-            echo "No tests found, skipping test step"
-          fi
-        continue-on-error: false
+      - name: Run tests
+        run: deno test --allow-all
 
       - name: Publish to JSR
         run: deno publish
