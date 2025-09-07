@@ -151,4 +151,9 @@ export interface OAuthSession {
    * Make authenticated request with automatic DPoP header
    */
   makeRequest(method: string, url: string, options?: RequestInit): Promise<Response>;
+
+  /**
+   * Serialize session data for storage
+   */
+  toJSON(): SessionData;
 }
