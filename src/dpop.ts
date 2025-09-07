@@ -99,9 +99,18 @@ export async function importPrivateKeyFromJWK(
   privateKeyJWK: JsonWebKey,
 ): Promise<CryptoKey> {
   try {
+    // Clean JWK to remove any conflicting key_ops that might have been added by exportJWK
+    const cleanJWK: JsonWebKey = {
+      kty: privateKeyJWK.kty!,
+      crv: privateKeyJWK.crv!,
+      x: privateKeyJWK.x!,
+      y: privateKeyJWK.y!,
+      d: privateKeyJWK.d!,
+    };
+
     return await crypto.subtle.importKey(
       "jwk",
-      privateKeyJWK,
+      cleanJWK,
       {
         name: "ECDSA",
         namedCurve: "P-256",

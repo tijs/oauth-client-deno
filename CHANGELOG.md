@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2025-09-07
+
+### Fixed
+
+- **DPoP Key Import Issue**: Fixed "Invalid key usage" error by cleaning JWK before import to remove conflicting key_ops fields that may be added by the jose library's exportJWK function
+- Improved compatibility with Web Crypto API strict key usage validation
+
+## [1.0.3] - 2025-09-07
+
+### Fixed
+
+- **DPoP Key Generation/Import Alignment**: Fixed key usage flags mismatch between generation and import operations
+- Updated import function to use `["sign", "verify"]` to match generation flags
+- Added complete session data storage support for hono-oauth-sessions integration
+
+## [1.0.2] - 2025-09-07
+
+### Fixed
+
+- **Interface Compatibility**: Added `toJSON()` method to `OAuthSession` interface for hono-oauth-sessions compatibility
+- Enhanced session serialization support for complete OAuth data persistence
+
 ## [1.0.1] - 2025-09-05
 
 ### Added
