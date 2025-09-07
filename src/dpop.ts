@@ -107,7 +107,7 @@ export async function importPrivateKeyFromJWK(
         namedCurve: "P-256",
       },
       false, // not extractable
-      ["sign"],
+      ["sign", "verify"],
     );
   } catch (error) {
     throw new DPoPError("Failed to import private key from JWK", error as Error);
