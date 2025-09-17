@@ -146,6 +146,7 @@ export interface OAuthSession {
   refreshToken?: string;
   sub: string;
   aud: string;
+  pdsUrl: string;
 
   /**
    * Make authenticated request with automatic DPoP header

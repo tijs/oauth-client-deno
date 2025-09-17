@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-09-17
+
+### Changed
+
+- **BREAKING**: Added required `pdsUrl` property to `OAuthSession` interface for consistency with hono-oauth-sessions v0.3.0
+- Enhanced type compatibility with updated AT Protocol OAuth ecosystem
+
 ## [1.0.5] - 2025-09-07
 
 ### Fixed
