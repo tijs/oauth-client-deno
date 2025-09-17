@@ -2,7 +2,7 @@
  * @fileoverview Tests for storage implementations
  */
 
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert@1";
 import { LocalStorage, MemoryStorage } from "../src/storage.ts";
 
 // Mock localStorage for testing

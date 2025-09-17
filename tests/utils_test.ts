@@ -1,4 +1,4 @@
-import { assertEquals, assertMatch } from "jsr:@std/assert";
+import { assertEquals, assertMatch } from "jsr:@std/assert@1";
 
 // Helper functions that replicate the private PKCE methods for testing
 function generateCodeVerifier(): string {

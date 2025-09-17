@@ -2,7 +2,7 @@
  * @fileoverview Tests for Session class
  */
 
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals } from "jsr:@std/assert@1";
 import { Session, type SessionData } from "../src/session.ts";
 
 // Helper to create test session data

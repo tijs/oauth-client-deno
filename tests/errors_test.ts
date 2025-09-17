@@ -1,4 +1,4 @@
-import { assertEquals, assertInstanceOf } from "jsr:@std/assert";
+import { assertEquals, assertInstanceOf } from "jsr:@std/assert@1";
 import {
   AuthorizationError,
   DPoPError,
