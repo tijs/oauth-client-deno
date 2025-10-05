@@ -1,5 +1,7 @@
 # @tijs/oauth-client-deno
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tijsteulings)
+
 A **Deno-compatible** AT Protocol OAuth client built specifically for Deno environments using Web Crypto API. Built to solve crypto compatibility issues between Node.js-specific implementations and Deno runtime environments.
 
 ## 🎯 Opinionated Design
@@ -348,6 +350,10 @@ This package solves these issues by:
 - **Cross-platform compatibility** that works in Deno, browsers, and other Web Standards environments
 
 The implementation maintains full API compatibility with the original Node.js client while providing a native Web Standards foundation.
+
+## ☕ Support Development
+
+If this package helps your app development, consider [supporting on Ko-fi](https://ko-fi.com/tijsteulings). Your support helps maintain and improve this package.
 
 ## 🙏 Acknowledgments
 
