@@ -24,9 +24,9 @@ jobs:
 
       - name: Verify code quality
         run: |
-          deno fmt --check
-          deno lint
-          deno check **/*.ts
+          git ls-files '*.ts' '*.js' '*.tsx' '*.jsx' | xargs -r deno fmt --check
+          git ls-files '*.ts' '*.js' '*.tsx' '*.jsx' | xargs -r deno lint
+          git ls-files '*.ts' | xargs -r deno check
 
       - name: Run tests
         run: deno test --allow-all
