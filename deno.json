@@ -43,12 +43,7 @@
     "indentWidth": 2,
     "semiColons": true,
     "singleQuote": false,
-    "proseWrap": "preserve",
-    "files": {
-      "exclude": [
-        ".claude/CLAUDE.md"
-      ]
-    }
+    "proseWrap": "preserve"
   },
   "lint": {
     "rules": {
