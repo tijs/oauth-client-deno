@@ -43,11 +43,18 @@
     "indentWidth": 2,
     "semiColons": true,
     "singleQuote": false,
-    "proseWrap": "preserve"
+    "proseWrap": "preserve",
+    "files": {
+      "exclude": [
+        ".claude/CLAUDE.md"
+      ]
+    }
   },
   "lint": {
     "rules": {
-      "tags": ["recommended"]
+      "tags": [
+        "recommended"
+      ]
     },
     "exclude": [
       "coverage/",
