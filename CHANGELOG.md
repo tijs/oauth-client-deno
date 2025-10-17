@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-01-17
+
+### Added
+
+- **Concurrency-Safe Session Restore**: Added per-session lock manager to prevent race conditions when multiple concurrent requests try to restore the same session
+  - Prevents duplicate token refresh requests when session expires
+  - Concurrent requests for the same session now wait for and share the result of the first refresh operation
+  - Locks are per-DID, so different users' sessions are not affected by each other
+  - Automatic lock cleanup when restore operation completes
+  - Zero breaking changes - completely internal implementation detail
+
+### Fixed
+
+- **Race Condition in Token Refresh**: Fixed issue where concurrent API requests during session expiry could cause "OAuth session not found" errors
+  - Multiple endpoints calling `restore()` simultaneously would all trigger refresh, causing race conditions
+  - Now only one refresh happens per session even if 10+ endpoints call `restore()` concurrently
+  - Resolves intermittent 503 errors in multi-endpoint applications
+
+### Improved
+
+- **Developer Experience**: Enhanced JSDoc documentation for `restore()` method to clarify concurrency-safe behavior
+
 ## [2.0.0] - 2025-09-17
 
 ### Changed

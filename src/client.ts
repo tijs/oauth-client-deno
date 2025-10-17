@@ -63,6 +63,12 @@ export class OAuthClient {
   private readonly handleResolver: (handle: string) => Promise<{ did: string; pdsUrl: string }>;
 
   /**
+   * Per-session lock manager to prevent concurrent refresh operations.
+   * Maps sessionId to the in-flight restore Promise to queue concurrent requests.
+   */
+  private readonly refreshLocks = new Map<string, Promise<Session | null>>();
+
+  /**
    * Create a new OAuth client instance.
    *
    * @param config - OAuth client configuration options
@@ -278,6 +284,11 @@ export class OAuthClient {
    * the access token if it has expired. Returns null if the session doesn't exist
    * or cannot be restored.
    *
+   * **Concurrency safe:** If multiple concurrent requests try to restore the same
+   * session while it's being refreshed, they will all wait for and share the result
+   * of the first refresh operation. This prevents race conditions and duplicate
+   * token refresh requests.
+   *
    * @param sessionId - Unique identifier for the stored session
    * @returns Promise resolving to restored session, or null if not found
    * @example
@@ -290,26 +301,44 @@ export class OAuthClient {
    * }
    * ```
    */
-  async restore(sessionId: string): Promise<Session | null> {
-    try {
-      const sessionData = await this.storage.get<SessionData>(`session:${sessionId}`);
-      if (!sessionData) {
-        return null;
-      }
-
-      const session = Session.fromJSON(sessionData);
-
-      // Auto-refresh if needed
-      if (session.isExpired) {
-        const refreshedSession = await this.refresh(session);
-        await this.storage.set(`session:${sessionId}`, refreshedSession.toJSON());
-        return refreshedSession;
-      }
-
-      return session;
-    } catch {
-      return null;
+  restore(sessionId: string): Promise<Session | null> {
+    // Check if another request is already restoring/refreshing this session
+    const existingLock = this.refreshLocks.get(sessionId);
+    if (existingLock) {
+      // Wait for and reuse the in-flight restore operation
+      return existingLock;
     }
+
+    // Create a new restore operation
+    const restorePromise = (async () => {
+      try {
+        const sessionData = await this.storage.get<SessionData>(`session:${sessionId}`);
+        if (!sessionData) {
+          return null;
+        }
+
+        const session = Session.fromJSON(sessionData);
+
+        // Auto-refresh if needed
+        if (session.isExpired) {
+          const refreshedSession = await this.refresh(session);
+          await this.storage.set(`session:${sessionId}`, refreshedSession.toJSON());
+          return refreshedSession;
+        }
+
+        return session;
+      } catch {
+        return null;
+      } finally {
+        // Always cleanup the lock when done
+        this.refreshLocks.delete(sessionId);
+      }
+    })();
+
+    // Store the promise so concurrent requests can wait for it
+    this.refreshLocks.set(sessionId, restorePromise);
+
+    return restorePromise;
   }
 
   /**
