@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2025-01-11
+
+### Changed
+
+- **BREAKING**: `restore()` method now throws typed errors instead of returning `null` on failure
+  - Throws `SessionNotFoundError` when session doesn't exist in storage
+  - Throws `RefreshTokenExpiredError` when refresh token has expired
+  - Throws `RefreshTokenRevokedError` when refresh token has been revoked
+  - Throws `NetworkError` for transient network failures
+  - Throws `TokenExchangeError` for other token refresh failures
+  - Throws `SessionError` for unexpected session restoration failures
+
+### Added
+
+- **New Error Types**: Added specific error classes for better error handling and debugging
+  - `SessionNotFoundError`: Session not found in storage
+  - `RefreshTokenExpiredError`: Refresh token has expired
+  - `RefreshTokenRevokedError`: Refresh token has been revoked
+  - `NetworkError`: Network-related failures (retryable)
+- **Detailed Error Logging**: Added comprehensive logging throughout session restoration and token refresh flows
+  - Logs session lookup attempts
+  - Logs token refresh operations
+  - Logs all error conditions with context
+
+### Improved
+
+- **Error Visibility**: Session restoration failures now provide detailed error information instead of silent null returns
+- **Error Classification**: Automatic classification of token exchange errors into specific error types
+- **Debugging**: Enhanced logging makes it easier to diagnose OAuth session issues in production
+
+### Migration Guide
+
+Applications using `restore()` must now handle errors instead of checking for `null`:
+
+**Before (v2.x):**
+```typescript
+const session = await client.restore("session-id");
+if (!session) {
+  // Handle failure - but why did it fail?
+  console.log("Session not found");
+}
+```
+
+**After (v3.x):**
+```typescript
+try {
+  const session = await client.restore("session-id");
+  // Use session
+} catch (error) {
+  if (error instanceof SessionNotFoundError) {
+    // User needs to log in again
+  } else if (error instanceof RefreshTokenExpiredError) {
+    // Refresh token expired - re-authenticate required
+  } else if (error instanceof NetworkError) {
+    // Temporary network issue - retry may help
+  }
+}
+```
+
 ## [2.1.0] - 2025-01-17
 
 ### Added

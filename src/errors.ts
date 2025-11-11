@@ -326,3 +326,120 @@ export class AuthorizationError extends OAuthError {
     this.name = "AuthorizationError";
   }
 }
+
+/**
+ * Thrown when a session cannot be found in storage.
+ *
+ * This error occurs during session restoration when the requested session
+ * ID does not exist in storage, indicating the user needs to re-authenticate.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   const session = await client.restore("unknown-session-id");
+ * } catch (error) {
+ *   if (error instanceof SessionNotFoundError) {
+ *     console.log("Session expired or doesn't exist - please log in again");
+ *   }
+ * }
+ * ```
+ */
+export class SessionNotFoundError extends SessionError {
+  /**
+   * Create a new session not found error.
+   *
+   * @param sessionId - The session ID that was not found
+   */
+  constructor(sessionId: string) {
+    super(`Session not found: ${sessionId}`);
+    this.name = "SessionNotFoundError";
+  }
+}
+
+/**
+ * Thrown when a refresh token has expired and cannot be used.
+ *
+ * Refresh tokens have a limited lifetime. This error occurs when attempting
+ * to use an expired refresh token, requiring the user to re-authenticate.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   const session = await client.restore("session-id");
+ * } catch (error) {
+ *   if (error instanceof RefreshTokenExpiredError) {
+ *     console.log("Refresh token expired - please log in again");
+ *   }
+ * }
+ * ```
+ */
+export class RefreshTokenExpiredError extends TokenExchangeError {
+  /**
+   * Create a new refresh token expired error.
+   *
+   * @param cause - Optional underlying error from the token endpoint
+   */
+  constructor(cause?: Error) {
+    super("Refresh token has expired", "invalid_grant", cause);
+    this.name = "RefreshTokenExpiredError";
+  }
+}
+
+/**
+ * Thrown when a refresh token has been revoked by the authorization server.
+ *
+ * This error occurs when attempting to use a refresh token that has been
+ * explicitly revoked, requiring the user to re-authenticate.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   const session = await client.restore("session-id");
+ * } catch (error) {
+ *   if (error instanceof RefreshTokenRevokedError) {
+ *     console.log("Access has been revoked - please log in again");
+ *   }
+ * }
+ * ```
+ */
+export class RefreshTokenRevokedError extends TokenExchangeError {
+  /**
+   * Create a new refresh token revoked error.
+   *
+   * @param cause - Optional underlying error from the token endpoint
+   */
+  constructor(cause?: Error) {
+    super("Refresh token has been revoked", "invalid_grant", cause);
+    this.name = "RefreshTokenRevokedError";
+  }
+}
+
+/**
+ * Thrown when network operations fail during OAuth operations.
+ *
+ * This error indicates a transient network failure that may be retryable,
+ * such as connection timeouts, DNS failures, or network unavailability.
+ *
+ * @example
+ * ```ts
+ * try {
+ *   const session = await client.restore("session-id");
+ * } catch (error) {
+ *   if (error instanceof NetworkError) {
+ *     console.log("Network error - retrying may help:", error.message);
+ *   }
+ * }
+ * ```
+ */
+export class NetworkError extends OAuthError {
+  /**
+   * Create a new network error.
+   *
+   * @param message - Error message describing the network failure
+   * @param cause - Optional underlying error from the network operation
+   */
+  constructor(message: string, cause?: Error) {
+    super(`Network error: ${message}`, cause);
+    this.name = "NetworkError";
+  }
+}

@@ -17,7 +17,12 @@ import {
   AuthorizationError,
   InvalidHandleError,
   InvalidStateError,
+  NetworkError,
   OAuthError,
+  RefreshTokenExpiredError,
+  RefreshTokenRevokedError,
+  SessionError,
+  SessionNotFoundError,
   TokenExchangeError,
 } from "./errors.ts";
 import { createDefaultResolver, discoverOAuthEndpointsFromPDS } from "./resolvers.ts";
@@ -314,21 +319,63 @@ export class OAuthClient {
       try {
         const sessionData = await this.storage.get<SessionData>(`session:${sessionId}`);
         if (!sessionData) {
-          return null;
+          console.log(`Session not found in storage: ${sessionId}`);
+          throw new SessionNotFoundError(sessionId);
         }
 
         const session = Session.fromJSON(sessionData);
 
         // Auto-refresh if needed
         if (session.isExpired) {
-          const refreshedSession = await this.refresh(session);
-          await this.storage.set(`session:${sessionId}`, refreshedSession.toJSON());
-          return refreshedSession;
+          console.log(`Session expired, attempting token refresh for: ${sessionId}`);
+          try {
+            const refreshedSession = await this.refresh(session);
+            await this.storage.set(`session:${sessionId}`, refreshedSession.toJSON());
+            console.log(`Token refresh successful for: ${sessionId}`);
+            return refreshedSession;
+          } catch (error) {
+            console.error(`Token refresh failed for ${sessionId}:`, error);
+            // Re-throw with proper error classification
+            if (error instanceof TokenExchangeError) {
+              // Check for specific refresh token error responses
+              if (error.errorCode === "invalid_grant") {
+                throw new RefreshTokenExpiredError(error);
+              }
+              throw error;
+            }
+            if (error instanceof NetworkError) {
+              throw error;
+            }
+            // Wrap unknown errors as generic token exchange errors
+            throw new TokenExchangeError(
+              "Token refresh failed",
+              undefined,
+              error as Error,
+            );
+          }
         }
 
         return session;
-      } catch {
-        return null;
+      } catch (error) {
+        // Log all errors for debugging
+        console.error(`Session restoration failed for ${sessionId}:`, error);
+
+        // Re-throw typed errors as-is
+        if (
+          error instanceof SessionNotFoundError ||
+          error instanceof RefreshTokenExpiredError ||
+          error instanceof RefreshTokenRevokedError ||
+          error instanceof NetworkError ||
+          error instanceof TokenExchangeError
+        ) {
+          throw error;
+        }
+
+        // Wrap unexpected errors
+        throw new SessionError(
+          `Failed to restore session: ${sessionId}`,
+          error as Error,
+        );
       } finally {
         // Always cleanup the lock when done
         this.refreshLocks.delete(sessionId);
@@ -381,8 +428,13 @@ export class OAuthClient {
    * ```
    */
   async refresh(session: Session): Promise<Session> {
+    console.log(`Refreshing tokens for session with DID: ${session.did}`);
+
     try {
+      // Discover OAuth endpoints from PDS
       const oauthEndpoints = await discoverOAuthEndpointsFromPDS(session.pdsUrl);
+      console.log(`Token endpoint discovered: ${oauthEndpoints.tokenEndpoint}`);
+
       const refreshedTokens = await this.refreshTokens(
         oauthEndpoints.tokenEndpoint,
         session.refreshToken,
@@ -392,8 +444,34 @@ export class OAuthClient {
 
       // Update session with new tokens
       session.updateTokens(refreshedTokens);
+      console.log(`Token refresh successful for DID: ${session.did}`);
       return session;
     } catch (error) {
+      console.error(`Token refresh failed for DID ${session.did}:`, error);
+
+      // Classify the error based on type
+      if (error instanceof TokenExchangeError) {
+        // Already a TokenExchangeError, check for specific grant errors
+        if (error.errorCode === "invalid_grant") {
+          throw new RefreshTokenExpiredError(error);
+        }
+        throw error;
+      }
+
+      // Check for network-related errors
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        if (
+          errorMessage.includes("network") ||
+          errorMessage.includes("timeout") ||
+          errorMessage.includes("connection") ||
+          errorMessage.includes("fetch")
+        ) {
+          throw new NetworkError("Failed to reach token endpoint", error);
+        }
+      }
+
+      // Default to generic token exchange error
       throw new TokenExchangeError("Token refresh failed", undefined, error as Error);
     }
   }
