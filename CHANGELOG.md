@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Applications using `restore()` must now handle errors instead of checking for `null`:
 
 **Before (v2.x):**
+
 ```typescript
 const session = await client.restore("session-id");
 if (!session) {
@@ -49,6 +50,7 @@ if (!session) {
 ```
 
 **After (v3.x):**
+
 ```typescript
 try {
   const session = await client.restore("session-id");

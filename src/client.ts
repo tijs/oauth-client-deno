@@ -3,7 +3,7 @@
  * @module
  */
 
-import { isValidHandle } from "npm:@atproto/syntax@0.4.0";
+import { isValidHandle } from "@atproto/syntax";
 import type {
   AuthorizeOptions,
   CallbackOptions,

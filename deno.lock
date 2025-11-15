@@ -25,5 +25,12 @@
     "@atproto/syntax@0.4.0": {
       "integrity": "sha512-b9y5ceHS8YKOfP3mdKmwAx5yVj9294UN7FG2XzP6V5aKUdFazEYRnR9m5n5ZQFKa3GNvz7de9guZCJ/sUTcOAA=="
     }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@panva/jose@^6.1.0",
+      "jsr:@std/assert@1",
+      "npm:@atproto/syntax@0.4.0"
+    ]
   }
 }

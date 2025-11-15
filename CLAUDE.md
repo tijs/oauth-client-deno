@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a Deno-native AT Protocol OAuth client library that provides handle-focused authentication using Web Crypto API. It's an alternative to `@atproto/oauth-client-node` built specifically to solve Node.js crypto compatibility issues in Deno environments.
 
 **Key Design Philosophy:**
+
 - Handle-focused (accepts `alice.bsky.social` only, not DIDs or URLs)
 - Uses Slingshot resolver by default with multiple fallbacks
 - Web Crypto API for cross-platform compatibility (no Node.js crypto)
@@ -78,20 +79,24 @@ deno task ci
 ### Critical Implementation Details
 
 **Web Crypto API Usage:**
+
 - MUST use `crypto.subtle.generateKey()` with `{ name: "ECDSA", namedCurve: "P-256" }`
 - NEVER use Node.js crypto APIs - they don't work in Deno
 - Import jose from `jsr:@panva/jose` NOT `npm:jose`
 
 **DPoP Authentication:**
+
 - Every token request requires DPoP proof with ES256 signature
 - Access token hash (`ath` claim) required for authenticated requests
 - Servers may respond with 400/401 + `DPoP-Nonce` header requiring retry
 
 **Concurrency Safety:**
+
 - `OAuthClient.restore()` uses `refreshLocks` Map to prevent duplicate refresh requests
 - Multiple concurrent restore calls for same session wait on single refresh operation
 
 **Token Refresh:**
+
 - Sessions considered expired if token expires within 5 minutes
 - Refresh may or may not rotate refresh token (server-dependent)
 - Refresh failures throw typed errors: `RefreshTokenExpiredError`, `NetworkError`, etc.
@@ -121,18 +126,21 @@ deno task ci
 ## Common Tasks
 
 **Adding a new error type:**
+
 1. Create class extending appropriate base in `src/errors.ts`
 2. Add JSDoc with `@example` showing usage
 3. Export from `mod.ts`
 4. Add test case in `tests/errors_test.ts`
 
 **Adding a new storage backend:**
+
 1. Implement `OAuthStorage` interface in `src/storage.ts`
 2. Handle TTL and expiration logic
 3. Export from `mod.ts`
 4. Add test coverage in `tests/storage_test.ts`
 
 **Modifying OAuth flow:**
+
 - Changes to `client.ts` likely require testing against real AT Protocol servers
 - Ensure PKCE data cleanup happens even on errors
 - Maintain per-session refresh lock semantics
