@@ -3,6 +3,8 @@
  * @module
  */
 
+import type { Logger } from "./logger.ts";
+
 /**
  * Storage interface for persisting OAuth sessions and state data.
  *
@@ -99,6 +101,12 @@ export interface OAuthClientConfig {
    * Only used when using the default handle resolver
    */
   slingshotUrl?: string;
+
+  /**
+   * Logger for debugging and diagnostics (optional, defaults to no-op logger)
+   * Implement the Logger interface to capture client logging output
+   */
+  logger?: Logger;
 }
 
 /**
@@ -119,21 +127,6 @@ export interface AuthorizeOptions {
    * Login hint for the authorization server
    */
   loginHint?: string;
-
-  /**
-   * AbortSignal for canceling authorization
-   */
-  signal?: AbortSignal;
-}
-
-/**
- * Callback options matching @atproto/oauth-client interface
- */
-export interface CallbackOptions {
-  /**
-   * Redirect URI override (optional)
-   */
-  redirect_uri?: string;
 }
 
 /**

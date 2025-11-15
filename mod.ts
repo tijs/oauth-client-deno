@@ -41,9 +41,9 @@ export {
   DirectoryResolver,
   SlingshotResolver,
 } from "./src/resolvers.ts";
+export { ConsoleLogger, type Logger, NoOpLogger } from "./src/logger.ts";
 export type {
   AuthorizeOptions,
-  CallbackOptions,
   HandleResolver,
   OAuthClientConfig,
   OAuthSession,

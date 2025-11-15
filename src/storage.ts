@@ -80,13 +80,22 @@ export class SQLiteStorage implements OAuthStorage {
 
     if (result.rows.length === 0) return null;
 
-    const [value, expiresAt] = result.rows[0];
-    if (expiresAt && typeof expiresAt === "number" && Date.now() > expiresAt) {
+    const row = result.rows[0];
+    if (!row || row.length < 2) return null;
+
+    const [value, expiresAt] = row;
+
+    // Validate types from database
+    if (typeof value !== "string") {
+      throw new Error("Invalid storage value: expected string");
+    }
+
+    if (expiresAt !== null && typeof expiresAt === "number" && Date.now() > expiresAt) {
       await this.delete(key);
       return null;
     }
 
-    return JSON.parse(value as string) as T;
+    return JSON.parse(value) as T;
   }
 
   async set<T = unknown>(key: string, value: T, options?: { ttl?: number }): Promise<void> {

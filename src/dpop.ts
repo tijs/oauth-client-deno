@@ -99,13 +99,24 @@ export async function importPrivateKeyFromJWK(
   privateKeyJWK: JsonWebKey,
 ): Promise<CryptoKey> {
   try {
+    // Validate required JWK fields for EC private key
+    if (
+      typeof privateKeyJWK.kty !== "string" ||
+      typeof privateKeyJWK.crv !== "string" ||
+      typeof privateKeyJWK.x !== "string" ||
+      typeof privateKeyJWK.y !== "string" ||
+      typeof privateKeyJWK.d !== "string"
+    ) {
+      throw new Error("Invalid JWK format: missing required EC private key fields");
+    }
+
     // Clean JWK to remove any conflicting key_ops that might have been added by exportJWK
     const cleanJWK: JsonWebKey = {
-      kty: privateKeyJWK.kty!,
-      crv: privateKeyJWK.crv!,
-      x: privateKeyJWK.x!,
-      y: privateKeyJWK.y!,
-      d: privateKeyJWK.d!,
+      kty: privateKeyJWK.kty,
+      crv: privateKeyJWK.crv,
+      x: privateKeyJWK.x,
+      y: privateKeyJWK.y,
+      d: privateKeyJWK.d,
     };
 
     return await crypto.subtle.importKey(

@@ -89,9 +89,17 @@ const sessionId = "user-123";
 await client.store(sessionId, session);
 
 // Restore session (with automatic token refresh if needed)
-const restoredSession = await client.restore(sessionId);
-if (restoredSession) {
+try {
+  const restoredSession = await client.restore(sessionId);
   console.log("Welcome back,", restoredSession.handle);
+} catch (error) {
+  if (error instanceof SessionNotFoundError) {
+    console.log("Please log in again");
+  } else if (error instanceof RefreshTokenExpiredError) {
+    console.log("Session expired, please re-authenticate");
+  } else {
+    throw error; // Unexpected error
+  }
 }
 
 // Manual token refresh
@@ -183,6 +191,46 @@ const client = new OAuthClient({
 ```
 
 > **Why Slingshot?** Slingshot is a production-grade cache of AT Protocol data that provides faster handle resolution and better reliability, especially during high-traffic periods. It uses the `resolveMiniDoc` endpoint which returns both DID and PDS URL in a single request, reducing the need for multiple lookups. However, it does introduce a dependency on a third-party service. The fallback mechanisms ensure your application continues to work even if Slingshot is unavailable.
+
+### Logging
+
+Control client logging output by providing a custom logger:
+
+```typescript
+import { ConsoleLogger, type Logger } from "jsr:@tijs/oauth-client-deno";
+
+// Use built-in console logger for development
+const client = new OAuthClient({
+  // ... other config
+  logger: new ConsoleLogger(),
+});
+
+// Or implement custom logger for production
+class ProductionLogger implements Logger {
+  debug(message: string, ...args: unknown[]): void {
+    // Send to your logging service
+  }
+
+  info(message: string, ...args: unknown[]): void {
+    logger.log(message, ...args);
+  }
+
+  warn(message: string, ...args: unknown[]): void {
+    logger.warn(message, ...args);
+  }
+
+  error(message: string, ...args: unknown[]): void {
+    logger.error(message, ...args);
+  }
+}
+
+const client = new OAuthClient({
+  // ... other config
+  logger: new ProductionLogger(),
+});
+```
+
+> **Note**: By default, the client uses a no-op logger that produces no output.
 
 ## 🏗️ Advanced Usage
 

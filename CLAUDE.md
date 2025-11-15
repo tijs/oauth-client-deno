@@ -42,11 +42,12 @@ deno task ci
 
 ### Core Components
 
-1. **OAuthClient** (`src/client.ts`) - Main OAuth flow orchestration
-   - Handles authorization URL generation with PKCE
+1. **OAuthClient** (`src/client.ts`) - Main OAuth flow orchestration (~680 lines)
+   - Authorization URL generation with PKCE
    - Token exchange and refresh with DPoP
    - Pushed Authorization Request (PAR) support
-   - Concurrency-safe token refresh with per-session locks
+   - Dual concurrency locks: `restoreLocks` for sessions, `refreshLocks` for refresh operations
+   - Configurable logging via Logger interface
 
 2. **Session** (`src/session.ts`) - Authenticated session management
    - Token lifecycle management (access + refresh tokens)
@@ -60,18 +61,35 @@ deno task ci
    - `CustomResolver`: User-provided resolution function
    - OAuth endpoint discovery from PDS metadata
 
-4. **DPoP** (`src/dpop.ts`) - Proof of Possession implementation
+4. **PKCE** (`src/pkce.ts`) - PKCE utilities
+   - Code verifier generation (32 random bytes)
+   - Code challenge generation (SHA-256 of verifier)
+   - Base64URL encoding utility
+
+5. **Token Exchange** (`src/token-exchange.ts`) - Token operations
+   - Authorization code exchange for tokens
+   - Refresh token exchange
+   - Shared DPoP retry logic (deduplicates nonce handling)
+
+6. **DPoP** (`src/dpop.ts`) - Proof of Possession implementation
    - ES256 (ECDSA P-256) key generation using Web Crypto API
    - JWT proof generation with `jsr:@panva/jose` (not npm version)
+   - Key import with validation (no type assertions)
    - Automatic nonce handling on 401 challenges
 
-5. **Storage** (`src/storage.ts`) - Session persistence abstractions
+7. **Storage** (`src/storage.ts`) - Session persistence abstractions
    - `MemoryStorage`: In-memory with TTL support
-   - `SQLiteStorage`: Deno SQLite backend example
+   - `SQLiteStorage`: Deno SQLite backend example with type validation
    - `LocalStorage`: Browser/localStorage compatible
    - All storage is async with TTL support
 
-6. **Error Handling** (`src/errors.ts`) - Typed error hierarchy
+8. **Logger** (`src/logger.ts`) - Logging abstraction
+   - `Logger` interface with debug/info/warn/error methods
+   - `NoOpLogger`: Default silent logger
+   - `ConsoleLogger`: Development/debugging logger
+   - Inject custom logger via `OAuthClientConfig.logger`
+
+9. **Error Handling** (`src/errors.ts`) - Typed error hierarchy
    - All errors extend `OAuthError` base class
    - Specific error types for each failure mode
    - Error chaining with `cause` support
@@ -92,8 +110,23 @@ deno task ci
 
 **Concurrency Safety:**
 
-- `OAuthClient.restore()` uses `refreshLocks` Map to prevent duplicate refresh requests
-- Multiple concurrent restore calls for same session wait on single refresh operation
+- `OAuthClient.restore()` uses `restoreLocks` Map (keyed by sessionId)
+- `OAuthClient.refresh()` uses `refreshLocks` Map (keyed by DID)
+- Multiple concurrent calls wait on single operation and share the result
+- Locks are always cleaned up in finally blocks
+
+**Error Handling Strategy:**
+
+- `restore()` ALWAYS throws errors (never returns null)
+- Use try/catch to handle `SessionNotFoundError`, `RefreshTokenExpiredError`, `NetworkError`
+- All errors include `cause` chain for debugging
+
+**Logging:**
+
+- Client uses injected `Logger` instance (defaults to `NoOpLogger`)
+- Use `ConsoleLogger` for development/debugging
+- Implement custom `Logger` interface for production logging
+- All sensitive operations logged at appropriate levels
 
 **Token Refresh:**
 

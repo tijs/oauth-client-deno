@@ -5,6 +5,88 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2025-01-15
+
+### Breaking Changes
+
+- **`restore()` now throws errors instead of returning null**
+  - Use try/catch to handle `SessionNotFoundError`, `RefreshTokenExpiredError`, `NetworkError`
+  - More explicit error handling with typed error classes
+  - See migration guide below for update instructions
+
+### Added
+
+- **Logging System**: Configurable logging abstraction
+  - `Logger` interface for custom logging implementations
+  - `NoOpLogger` (default, silent)
+  - `ConsoleLogger` for development/debugging
+  - Inject via `OAuthClientConfig.logger`
+- **New Modules**: Better code organization
+  - `src/pkce.ts`: PKCE utilities (code verifier, challenge, base64url)
+  - `src/token-exchange.ts`: Token exchange and refresh operations
+  - `src/logger.ts`: Logging abstractions
+- **Concurrency Protection**: Dual locking system
+  - `restoreLocks` for session restoration (prevents duplicate restore operations)
+  - `refreshLocks` for token refresh (prevents duplicate token requests)
+  - Concurrent calls wait on single operation and share results
+
+### Improved
+
+- **Type Safety**: Removed all type assertions
+  - Added runtime validation in `dpop.ts` for JWK imports
+  - Added type guards in `storage.ts` for SQLite results
+  - Proper type narrowing throughout codebase
+- **Code Deduplication**: Shared DPoP retry logic
+  - Single `fetchWithDPoPRetry` utility handles nonce challenges
+  - Eliminates duplicate code in token exchange and refresh
+- **File Organization**: All files now under 700 lines
+  - `client.ts`: 731 → 683 lines
+  - Better separation of concerns across modules
+
+### Removed
+
+- **Unused API Parameters**:
+  - Removed `signal?: AbortSignal` from `AuthorizeOptions` (not implemented)
+  - Removed `CallbackOptions` interface and parameter (unused)
+- **Console Logging**: All console.* calls replaced with Logger interface
+
+### Migration Guide
+
+**Update restore() error handling:**
+
+```typescript
+// Before (v3.x):
+const session = await client.restore("session-id");
+if (!session) {
+  console.log("Session not found");
+}
+
+// After (v4.x):
+try {
+  const session = await client.restore("session-id");
+  console.log("Welcome back,", session.handle);
+} catch (error) {
+  if (error instanceof SessionNotFoundError) {
+    console.log("Please log in again");
+  } else if (error instanceof RefreshTokenExpiredError) {
+    console.log("Session expired, please re-authenticate");
+  } else {
+    throw error;
+  }
+}
+```
+
+**Add logging (optional):**
+
+```typescript
+import { ConsoleLogger } from "@tijs/oauth-client-deno";
+
+const client = new OAuthClient({
+  // ... other config
+  logger: new ConsoleLogger(), // Enable debug logging
+});
+```
+
 ## [3.0.0] - 2025-01-11
 
 ### Changed
