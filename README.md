@@ -409,3 +409,8 @@ If this package helps your app development, consider [supporting on Ko-fi](https
 - Inspired by the AT Protocol OAuth specification and reference implementations
 - Inspired by the Bookhive OAuth implementation: https://github.com/nperez0111/bookhive
 - Thanks to the Bluesky team for the AT Protocol ecosystem
+
+## See Also
+
+- **[@tijs/atproto-oauth-hono](https://jsr.io/@tijs/atproto-oauth-hono)**: High-level Hono integration built on top of this client.
+
