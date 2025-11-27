@@ -529,6 +529,31 @@ export class OAuthClient {
       } catch (error) {
         this.logger.error("Token refresh failed", { did, error });
 
+        // Check for token replay error (concurrent refresh in another isolate)
+        if (this.isTokenReplayedError(error)) {
+          this.logger.info("Token replay detected, fetching updated session from storage", { did });
+
+          // Wait briefly for the other process to save
+          await this.sleep(200);
+
+          // Re-read session from storage (the other process should have saved new tokens)
+          const updatedSessionData = await this.storage.get<SessionData>(`session:${did}`);
+          if (updatedSessionData) {
+            const updatedSession = Session.fromJSON(updatedSessionData);
+            if (!updatedSession.isExpired) {
+              this.logger.info("Retrieved refreshed session from storage after replay detection", {
+                did,
+              });
+              return updatedSession;
+            }
+          }
+
+          // Could not recover - throw the original error
+          this.logger.error("Could not recover from token replay - no valid session in storage", {
+            did,
+          });
+        }
+
         // Classify the error based on type
         if (error instanceof TokenExchangeError) {
           // Already a TokenExchangeError, check for specific grant errors
@@ -629,6 +654,29 @@ export class OAuthClient {
 
   private extractAuthServer(authorizationEndpoint: string): string {
     return authorizationEndpoint.replace(/\/oauth\/authorize$/, "");
+  }
+
+  /**
+   * Check if an error is a token replay error from concurrent refresh attempts.
+   * This happens in serverless environments where multiple isolates may try to
+   * refresh the same token simultaneously.
+   */
+  private isTokenReplayedError(error: unknown): boolean {
+    if (error instanceof TokenExchangeError) {
+      if (error.errorCode !== "invalid_grant") return false;
+      // Check both the message and errorDescription for "replayed"
+      const message = error.message.toLowerCase();
+      const description = error.errorDescription?.toLowerCase() || "";
+      return message.includes("replayed") || description.includes("replayed");
+    }
+    return false;
+  }
+
+  /**
+   * Sleep for a specified duration.
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async pushAuthorizationRequest(

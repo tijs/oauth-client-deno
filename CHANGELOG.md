@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2025-11-27
+
+### Fixed
+
+- **Token refresh race condition in serverless environments**: When concurrent requests
+  trigger token refresh simultaneously across different isolates (e.g., Val Town, Deno Deploy),
+  the second request would fail with "Refresh token replayed" error. Now gracefully handles
+  this by re-reading the session from storage after detecting the replay error.
+
+### Added
+
+- **`errorDescription` field on `TokenExchangeError`**: OAuth `error_description` is now
+  exposed as a separate field for better error handling and logging
+- **OAuth error response parsing**: Token exchange errors now properly parse JSON error
+  responses from OAuth servers, extracting `error` and `error_description` fields
+
+### Improved
+
+- Better error classification for token refresh failures
+- More informative error messages when OAuth operations fail
+
 ## [4.0.1] - 2025-01-15
 
 ### Fixed

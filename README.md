@@ -413,4 +413,3 @@ If this package helps your app development, consider [supporting on Ko-fi](https
 ## See Also
 
 - **[@tijs/atproto-oauth-hono](https://jsr.io/@tijs/atproto-oauth-hono)**: High-level Hono integration built on top of this client.
-

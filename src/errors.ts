@@ -182,6 +182,9 @@ export class AuthServerDiscoveryError extends OAuthError {
  *     if (error.errorCode) {
  *       console.log("OAuth error code:", error.errorCode);
  *     }
+ *     if (error.errorDescription) {
+ *       console.log("OAuth error description:", error.errorDescription);
+ *     }
  *   }
  * }
  * ```
@@ -190,18 +193,25 @@ export class TokenExchangeError extends OAuthError {
   /** OAuth error code from the server (e.g., "invalid_grant") */
   public readonly errorCode?: string;
 
+  /** OAuth error_description from the server (e.g., "Refresh token replayed") */
+  public readonly errorDescription?: string;
+
   /**
    * Create a new token exchange error.
    *
    * @param message - Error message describing what went wrong
    * @param errorCode - Optional OAuth error code from the server
    * @param cause - Optional underlying error that caused the token exchange failure
+   * @param errorDescription - Optional OAuth error_description from the server
    */
-  constructor(message: string, errorCode?: string, cause?: Error) {
+  constructor(message: string, errorCode?: string, cause?: Error, errorDescription?: string) {
     super(`Token exchange failed: ${message}`, cause);
     this.name = "TokenExchangeError";
     if (errorCode) {
       this.errorCode = errorCode;
+    }
+    if (errorDescription) {
+      this.errorDescription = errorDescription;
     }
   }
 }

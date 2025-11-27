@@ -152,9 +152,22 @@ export async function exchangeCodeForTokens(
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    logger.error("Token exchange failed", { status: response.status, error });
-    throw new TokenExchangeError(error);
+    const errorText = await response.text();
+    logger.error("Token exchange failed", { status: response.status, error: errorText });
+
+    // Try to parse OAuth error response (JSON format)
+    try {
+      const errorJson = JSON.parse(errorText);
+      throw new TokenExchangeError(
+        errorJson.error_description || errorJson.error || errorText,
+        errorJson.error, // e.g., "invalid_client", "invalid_grant"
+        undefined, // cause
+        errorJson.error_description, // errorDescription
+      );
+    } catch (parseError) {
+      if (parseError instanceof TokenExchangeError) throw parseError;
+      throw new TokenExchangeError(errorText);
+    }
   }
 
   logger.info("Token exchange successful");
@@ -219,9 +232,24 @@ export async function refreshTokens(
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      logger.error("Token refresh failed", { status: response.status, error });
-      throw new TokenExchangeError(`Token refresh failed: ${error}`);
+      const errorText = await response.text();
+      logger.error("Token refresh failed", { status: response.status, error: errorText });
+
+      // Try to parse OAuth error response (JSON format)
+      try {
+        const errorJson = JSON.parse(errorText);
+        throw new TokenExchangeError(
+          `Token refresh failed: ${errorJson.error_description || errorJson.error || errorText}`,
+          errorJson.error, // e.g., "invalid_grant"
+          undefined, // cause
+          errorJson.error_description, // errorDescription
+        );
+      } catch (parseError) {
+        // If it's already our error, re-throw it
+        if (parseError instanceof TokenExchangeError) throw parseError;
+        // Otherwise, throw with raw text
+        throw new TokenExchangeError(`Token refresh failed: ${errorText}`);
+      }
     }
 
     const tokens = await response.json();
