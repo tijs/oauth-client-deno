@@ -221,7 +221,7 @@ export class OAuthClient {
           codeChallenge,
           state,
           scope: options?.scope ?? "atproto transition:generic",
-          loginHint: options?.loginHint ?? input,
+          ...(isAuthServerUrl ? {} : { loginHint: options?.loginHint ?? input }),
         },
       );
 
@@ -714,7 +714,7 @@ export class OAuthClient {
       codeChallenge: string;
       state: string;
       scope: string;
-      loginHint: string;
+      loginHint?: string;
     },
   ): Promise<string> {
     const parParams = new URLSearchParams({
@@ -725,8 +725,10 @@ export class OAuthClient {
       code_challenge: params.codeChallenge,
       code_challenge_method: "S256",
       state: params.state,
-      login_hint: params.loginHint,
     });
+    if (params.loginHint) {
+      parParams.set("login_hint", params.loginHint);
+    }
 
     this.logger.debug("Sending Pushed Authorization Request", { authServer });
 
