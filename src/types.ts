@@ -149,6 +149,14 @@ export interface AuthorizeOptions {
    * Login hint for the authorization server
    */
   loginHint?: string;
+
+  /**
+   * OAuth prompt parameter (e.g., "login", "create").
+   * Use "create" to direct users to the PDS account registration page
+   * instead of login. After registration, the normal OAuth callback
+   * completes and the user is authenticated.
+   */
+  prompt?: string;
 }
 
 /**

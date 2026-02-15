@@ -237,6 +237,7 @@ export class OAuthClient {
           state,
           scope: options?.scope ?? "atproto transition:generic",
           ...(isAuthServerUrl ? {} : { loginHint: options?.loginHint ?? input }),
+          ...(options?.prompt ? { prompt: options.prompt } : {}),
         },
       );
 
@@ -882,6 +883,7 @@ export class OAuthClient {
       state: string;
       scope: string;
       loginHint?: string;
+      prompt?: string;
     },
   ): Promise<string> {
     const parParams = new URLSearchParams({
@@ -895,6 +897,9 @@ export class OAuthClient {
     });
     if (params.loginHint) {
       parParams.set("login_hint", params.loginHint);
+    }
+    if (params.prompt) {
+      parParams.set("prompt", params.prompt);
     }
 
     this.logger.debug("Sending Pushed Authorization Request", { authServer });
