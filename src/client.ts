@@ -367,7 +367,17 @@ export class OAuthClient {
 
       // CRITICAL: Verify the auth server is authoritative for this DID
       // Prevents a malicious auth server from claiming to be another user
-      await this.verifyIssuer(tokenDid, pkceData.authServer, pkceData.issuer, pdsUrl);
+      try {
+        await this.verifyIssuer(tokenDid, pkceData.authServer, pkceData.issuer, pdsUrl);
+      } catch (verifyError) {
+        if (verifyError instanceof IssuerMismatchError) {
+          // Attach resolved identity so callers can re-authorize via the correct server
+          verifyError.handle = handle;
+          verifyError.did = did;
+          throw verifyError;
+        }
+        throw verifyError;
+      }
 
       // Create session
       const sessionData: SessionData = {

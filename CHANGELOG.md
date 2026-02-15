@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.1] - 2026-02-15
+
+### Added
+
+- **Identity on IssuerMismatchError**: `handle` and `did` properties are now
+  set on `IssuerMismatchError` when thrown from `callback()`, allowing callers
+  to re-authorize through the correct auth server transparently.
+
 ## [5.0.0] - 2026-02-15
 
 ### Breaking

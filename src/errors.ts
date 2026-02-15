@@ -474,6 +474,11 @@ export class MetadataValidationError extends OAuthError {
  * a malicious auth server from issuing tokens for a different user.
  */
 export class IssuerMismatchError extends OAuthError {
+  /** The resolved handle of the user (available when discovered during callback) */
+  public handle?: string;
+  /** The resolved DID of the user (available when discovered during callback) */
+  public did?: string;
+
   constructor(
     public readonly expected: string,
     public readonly actual: string,
