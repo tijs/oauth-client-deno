@@ -453,3 +453,48 @@ export class NetworkError extends OAuthError {
     this.name = "NetworkError";
   }
 }
+
+/**
+ * Thrown when authorization server metadata fails validation.
+ *
+ * This error occurs when the metadata from an OAuth authorization server
+ * is missing required fields, has invalid values, or doesn't meet
+ * AT Protocol requirements.
+ */
+export class MetadataValidationError extends OAuthError {
+  constructor(message: string, cause?: Error) {
+    super(`Invalid auth server metadata: ${message}`, cause);
+    this.name = "MetadataValidationError";
+  }
+}
+
+/**
+ * Thrown when the issuer in a token response doesn't match the expected
+ * authorization server. This is a critical security check that prevents
+ * a malicious auth server from issuing tokens for a different user.
+ */
+export class IssuerMismatchError extends OAuthError {
+  constructor(
+    public readonly expected: string,
+    public readonly actual: string,
+  ) {
+    super(
+      `Issuer mismatch: expected "${expected}" but got "${actual}". ` +
+        `The authorization server is not authoritative for this identity.`,
+    );
+    this.name = "IssuerMismatchError";
+  }
+}
+
+/**
+ * Thrown when a token response fails validation.
+ *
+ * This error occurs when the token response from the authorization server
+ * is missing required fields or contains invalid values.
+ */
+export class TokenValidationError extends TokenExchangeError {
+  constructor(message: string, cause?: Error) {
+    super(`Invalid token response: ${message}`, undefined, cause);
+    this.name = "TokenValidationError";
+  }
+}

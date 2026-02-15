@@ -3,7 +3,12 @@
  * @module
  */
 
-import { generateDPoPProof, importPrivateKeyFromJWK } from "./dpop.ts";
+import {
+  generateDPoPProof,
+  getCachedNonce,
+  importPrivateKeyFromJWK,
+  updateNonceCache,
+} from "./dpop.ts";
 import { TokenExchangeError } from "./errors.ts";
 import type { Logger } from "./logger.ts";
 
@@ -42,26 +47,42 @@ async function fetchWithDPoPRetry(
   publicKeyJWK: JsonWebKey,
   accessToken: string | undefined,
   logger: Logger,
+  timeoutMs?: number,
 ): Promise<Response> {
-  // Create initial DPoP proof
+  // Check nonce cache for this origin
+  const cachedNonce = getCachedNonce(tokenUrl);
+
+  // Create initial DPoP proof (with cached nonce if available)
   let dpopProof = await generateDPoPProof(
     "POST",
     tokenUrl,
     privateKey,
     publicKeyJWK,
     accessToken,
+    cachedNonce,
   );
 
   logger.debug("Making token request with DPoP proof", { tokenUrl });
 
-  let response = await fetch(tokenUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "DPoP": dpopProof,
-    },
-    body,
-  });
+  const fetchOptions = (dpop: string): RequestInit => {
+    const opts: RequestInit = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "DPoP": dpop,
+      },
+      body,
+    };
+    if (timeoutMs) {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), timeoutMs);
+      opts.signal = controller.signal;
+    }
+    return opts;
+  };
+
+  let response = await fetch(tokenUrl, fetchOptions(dpopProof));
+  updateNonceCache(tokenUrl, response);
 
   // Handle DPoP nonce requirement - AT Protocol uses 400 status
   if (!response.ok && response.status === 400) {
@@ -79,14 +100,8 @@ async function fetchWithDPoPRetry(
         nonce,
       );
 
-      response = await fetch(tokenUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "DPoP": dpopProof,
-        },
-        body,
-      });
+      response = await fetch(tokenUrl, fetchOptions(dpopProof));
+      updateNonceCache(tokenUrl, response);
     }
   }
 
@@ -211,6 +226,7 @@ export async function refreshTokens(
   privateKeyJWK: JsonWebKey,
   publicKeyJWK: JsonWebKey,
   logger: Logger,
+  timeoutMs?: number,
 ): Promise<{ accessToken: string; refreshToken?: string; expiresIn: number }> {
   try {
     logger.info("Refreshing access token", { tokenEndpoint });
@@ -231,6 +247,7 @@ export async function refreshTokens(
       publicKeyJWK,
       undefined,
       logger,
+      timeoutMs,
     );
 
     if (!response.ok) {

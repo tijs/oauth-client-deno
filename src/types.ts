@@ -107,6 +107,28 @@ export interface OAuthClientConfig {
    * Implement the Logger interface to capture client logging output
    */
   logger?: Logger;
+
+  /**
+   * Timeout for refresh token operations in milliseconds (default: 30000).
+   */
+  refreshTimeout?: number;
+
+  /**
+   * Called after a session is updated (e.g., after token refresh).
+   */
+  onSessionUpdated?: (sessionId: string, session: OAuthSession) => void;
+
+  /**
+   * Called after a session is deleted (e.g., after sign-out).
+   */
+  onSessionDeleted?: (sessionId: string) => void;
+
+  /**
+   * Custom lock function for distributed refresh token locking.
+   * Default uses in-memory Map locks (works for single-instance and Deno Deploy isolates).
+   * Provide a custom implementation for distributed locking (e.g., Redis).
+   */
+  requestLock?: <T>(key: string, fn: () => Promise<T>) => Promise<T>;
 }
 
 /**

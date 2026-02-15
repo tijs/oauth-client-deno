@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-02-15
+
+### Breaking
+
+- **Token response validation**: `callback()` now validates the full token
+  response from the auth server (access_token, token_type=DPoP, sub=did:*,
+  scope contains atproto, expires_in > 0). Previously invalid responses
+  would silently create broken sessions.
+- **Auth server metadata validation**: `discoverOAuthEndpointsFromAuthServer()`
+  now returns an `issuer` field and validates metadata against the AT Protocol
+  OAuth spec (issuer match, HTTPS endpoints, DPoP ES256 support).
+
+### Added
+
+- **Issuer verification after token exchange** (critical security fix): After
+  exchanging the authorization code, the client now resolves the DID's PDS to
+  verify the auth server is authoritative for that identity. Prevents a
+  malicious auth server from issuing tokens claiming to be another user.
+- **`iss` parameter validation** (RFC 9207): The callback now validates the
+  `iss` query parameter when present, rejecting mismatched issuers.
+- **JARM detection**: The callback rejects JWT-encoded authorization responses
+  (`response` parameter) with a clear error.
+- **DPoP `htu` normalization** (RFC 9449): Query parameters and fragments are
+  now stripped from the `htu` claim in DPoP proofs.
+- **DPoP nonce caching**: Nonces are cached per-origin so the first request
+  to a server that requires nonces doesn't need a retry.
+- **Auto-retry on 401**: Sessions now automatically refresh tokens and retry
+  when a request returns 401 Unauthorized.
+- **Refresh timeout**: Token refresh operations now have a configurable timeout
+  (default 30s) via `refreshTimeout` config option.
+- **Token revocation on refresh failure**: When a non-recoverable refresh
+  error occurs, the old refresh token is revoked (best effort).
+- **Event callbacks**: `onSessionUpdated` and `onSessionDeleted` config
+  options for reacting to session lifecycle events.
+- **Custom distributed locking**: `requestLock` config option for Redis-based
+  or other distributed refresh token locking.
+- **HTTPS enforcement**: All discovered OAuth endpoints are validated to use
+  HTTPS.
+- **New error types**: `MetadataValidationError`, `IssuerMismatchError`,
+  `TokenValidationError` for precise error handling.
+- **Validation exports**: `validateAuthServerMetadata()` and
+  `validateTokenResponse()` are exported for use by consumers.
+- **Upstream attribution**: LICENSE, NOTICE, and README now explicitly credit
+  the Bluesky AT Protocol libraries.
+
 ## [4.1.0] - 2026-02-15
 
 ### Added

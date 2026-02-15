@@ -403,12 +403,19 @@ The implementation maintains full API compatibility with the original Node.js cl
 
 If this package helps your app development, consider [supporting on Ko-fi](https://ko-fi.com/tijsteulings). Your support helps maintain and improve this package.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Built to solve compatibility issues with `@atproto/oauth-client-node` in Deno
-- Inspired by the AT Protocol OAuth specification and reference implementations
-- Inspired by the Bookhive OAuth implementation: https://github.com/nperez0111/bookhive
-- Thanks to the Bluesky team for the AT Protocol ecosystem
+This package implements the [AT Protocol OAuth specification](https://atproto.com/specs/oauth)
+for Deno environments using Web Crypto APIs.
+
+**Based on specifications and patterns from:**
+
+- [@atproto/oauth-client](https://github.com/bluesky-social/atproto/tree/main/packages/oauth/oauth-client)
+  and [@atproto/oauth-client-node](https://github.com/bluesky-social/atproto/tree/main/packages/oauth/oauth-client-node)
+  (Copyright 2022-2025 Bluesky Social PBC, MIT and Apache 2.0)
+- [Bookhive OAuth implementation](https://github.com/nperez0111/bookhive)
+
+Thanks to the Bluesky team for the AT Protocol ecosystem.
 
 ## See Also
 

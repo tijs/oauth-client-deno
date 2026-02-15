@@ -50,3 +50,9 @@ export type {
   OAuthStorage,
 } from "./src/types.ts";
 export * from "./src/errors.ts";
+export {
+  validateAuthServerMetadata,
+  type ValidatedAuthServerMetadata,
+  type ValidatedTokenResponse,
+  validateTokenResponse,
+} from "./src/validation.ts";

@@ -46,7 +46,17 @@ export type { SessionData };
  * ```
  */
 export class Session implements OAuthSession {
+  private refreshCallback?: () => Promise<void>;
+
   constructor(private data: SessionData) {}
+
+  /**
+   * Set a callback for automatic token refresh on 401 responses.
+   * The callback should refresh the session tokens and update storage.
+   */
+  setRefreshCallback(fn: () => Promise<void>): void {
+    this.refreshCallback = fn;
+  }
 
   /**
    * User's DID (Decentralized Identifier)
@@ -162,7 +172,7 @@ export class Session implements OAuthSession {
         this.data.dpopPrivateKeyJWK,
       );
 
-      return await makeDPoPRequest(
+      let response = await makeDPoPRequest(
         method,
         url,
         this.data.accessToken,
@@ -171,6 +181,28 @@ export class Session implements OAuthSession {
         options?.body as string,
         options?.headers,
       );
+
+      // Auto-retry on 401 if refresh callback is available
+      if (response.status === 401 && this.refreshCallback) {
+        await this.refreshCallback();
+
+        // Re-import key (may have changed after refresh)
+        const refreshedKey = await importPrivateKeyFromJWK(
+          this.data.dpopPrivateKeyJWK,
+        );
+
+        response = await makeDPoPRequest(
+          method,
+          url,
+          this.data.accessToken,
+          refreshedKey,
+          this.data.dpopPublicKeyJWK,
+          options?.body as string,
+          options?.headers,
+        );
+      }
+
+      return response;
     } catch (error) {
       throw new SessionError(
         "Failed to make authenticated request",

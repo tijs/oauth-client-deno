@@ -1,14 +1,17 @@
-import { assertEquals, assertInstanceOf } from "@std/assert";
+import { assert, assertEquals, assertInstanceOf } from "@std/assert";
 import {
   AuthorizationError,
   DPoPError,
   HandleResolutionError,
   InvalidHandleError,
   InvalidStateError,
+  IssuerMismatchError,
+  MetadataValidationError,
   OAuthError,
   PDSDiscoveryError,
   SessionError,
   TokenExchangeError,
+  TokenValidationError,
 } from "../src/errors.ts";
 
 Deno.test("OAuthError", async (t) => {
@@ -205,5 +208,44 @@ Deno.test("AuthorizationError", async (t) => {
     const error = new AuthorizationError("access_denied");
     assertInstanceOf(error, OAuthError);
     assertInstanceOf(error, AuthorizationError);
+  });
+});
+
+// New error types
+
+Deno.test("MetadataValidationError", async (t) => {
+  await t.step("should create error with message", () => {
+    const error = new MetadataValidationError("missing issuer field");
+    assertEquals(error.name, "MetadataValidationError");
+    assert(error.message.includes("missing issuer field"));
+    assertInstanceOf(error, OAuthError);
+  });
+
+  await t.step("should chain cause", () => {
+    const cause = new Error("parse error");
+    const error = new MetadataValidationError("invalid metadata", cause);
+    assertEquals(error.cause, cause);
+  });
+});
+
+Deno.test("IssuerMismatchError", async (t) => {
+  await t.step("should include expected and actual issuers", () => {
+    const error = new IssuerMismatchError("https://expected.com", "https://actual.com");
+    assertEquals(error.name, "IssuerMismatchError");
+    assertEquals(error.expected, "https://expected.com");
+    assertEquals(error.actual, "https://actual.com");
+    assert(error.message.includes("https://expected.com"));
+    assert(error.message.includes("https://actual.com"));
+    assertInstanceOf(error, OAuthError);
+  });
+});
+
+Deno.test("TokenValidationError", async (t) => {
+  await t.step("should create error with message", () => {
+    const error = new TokenValidationError("missing sub claim");
+    assertEquals(error.name, "TokenValidationError");
+    assert(error.message.includes("missing sub claim"));
+    assertInstanceOf(error, TokenExchangeError);
+    assertInstanceOf(error, OAuthError);
   });
 });

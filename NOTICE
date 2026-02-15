@@ -1,0 +1,10 @@
+This software incorporates patterns and specifications from:
+
+  @atproto/oauth-client and @atproto/oauth-client-node
+  https://github.com/bluesky-social/atproto
+  Copyright (c) 2022-2025 Bluesky Social PBC, and Contributors
+  Licensed under MIT and Apache 2.0
+
+This is an independent implementation for Deno using Web Crypto APIs,
+not a direct fork or copy. It was built from the AT Protocol OAuth
+specification with architectural guidance from the official libraries.

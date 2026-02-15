@@ -5,6 +5,7 @@
 
 import { AuthServerDiscoveryError, HandleResolutionError, PDSDiscoveryError } from "./errors.ts";
 import type { HandleResolver } from "./types.ts";
+import { requireHttpsUrl, validateAuthServerMetadata } from "./validation.ts";
 
 /**
  * Slingshot-based handle resolver for AT Protocol.
@@ -389,8 +390,9 @@ export async function discoverAuthenticationServer(
 
     // The authorization_servers field contains potential authentication servers
     if (metadata.authorization_servers && metadata.authorization_servers.length > 0) {
-      // Use the first authorization server
-      return metadata.authorization_servers[0];
+      const authServer = metadata.authorization_servers[0];
+      requireHttpsUrl(authServer, "authorization_server");
+      return authServer;
     }
 
     // Fallback: assume PDS is the auth server
@@ -422,9 +424,10 @@ export async function discoverAuthenticationServer(
 export async function discoverOAuthEndpointsFromAuthServer(
   authServerUrl: string,
 ): Promise<{
+  issuer: string;
   authorizationEndpoint: string;
   tokenEndpoint: string;
-  revocationEndpoint?: string;
+  revocationEndpoint?: string | undefined;
 }> {
   try {
     const response = await fetch(
@@ -435,16 +438,16 @@ export async function discoverOAuthEndpointsFromAuthServer(
       throw new Error(`OAuth discovery failed: ${response.status}`);
     }
 
-    const endpoints = await response.json();
+    const rawMetadata = await response.json();
 
-    if (!endpoints.authorization_endpoint || !endpoints.token_endpoint) {
-      throw new Error("Missing required OAuth endpoints in discovery document");
-    }
+    // Validate metadata including issuer match and HTTPS enforcement
+    const metadata = validateAuthServerMetadata(rawMetadata, authServerUrl);
 
     return {
-      authorizationEndpoint: endpoints.authorization_endpoint,
-      tokenEndpoint: endpoints.token_endpoint,
-      revocationEndpoint: endpoints.revocation_endpoint,
+      issuer: metadata.issuer,
+      authorizationEndpoint: metadata.authorization_endpoint,
+      tokenEndpoint: metadata.token_endpoint,
+      revocationEndpoint: metadata.revocation_endpoint,
     };
   } catch (error) {
     throw new AuthServerDiscoveryError(authServerUrl, error as Error);
@@ -471,9 +474,10 @@ export async function discoverOAuthEndpointsFromAuthServer(
 export async function discoverOAuthEndpointsFromPDS(
   pdsUrl: string,
 ): Promise<{
+  issuer: string;
   authorizationEndpoint: string;
   tokenEndpoint: string;
-  revocationEndpoint?: string;
+  revocationEndpoint?: string | undefined;
 }> {
   try {
     // Step 1: Try to discover authentication server from PDS

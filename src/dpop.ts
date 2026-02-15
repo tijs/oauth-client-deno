@@ -6,6 +6,22 @@
 import { exportJWK, SignJWT } from "@panva/jose";
 import { DPoPError } from "./errors.ts";
 
+/** Module-level nonce cache: maps origin to latest DPoP nonce */
+const nonceCache = new Map<string, string>();
+
+/** Get cached nonce for a URL's origin */
+export function getCachedNonce(url: string): string | undefined {
+  return nonceCache.get(new URL(url).origin);
+}
+
+/** Update nonce cache from a response's DPoP-Nonce header */
+export function updateNonceCache(url: string, response: Response): void {
+  const nonce = response.headers.get("DPoP-Nonce");
+  if (nonce) {
+    nonceCache.set(new URL(url).origin, nonce);
+  }
+}
+
 export interface DPoPKeyPair {
   privateKey: CryptoKey;
   publicKey: CryptoKey;
@@ -54,11 +70,15 @@ export async function generateDPoPProof(
   nonce?: string,
 ): Promise<string> {
   try {
+    // Normalize htu per RFC 9449: strip query and fragment
+    const htuUrl = new URL(url);
+    const htu = `${htuUrl.origin}${htuUrl.pathname}`;
+
     // Create DPoP JWT payload
     const payload: Record<string, unknown> = {
       jti: crypto.randomUUID(),
       htm: method,
-      htu: url,
+      htu,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + (5 * 60), // Expires in 5 minutes
     };
@@ -147,13 +167,17 @@ export async function makeDPoPRequest(
   headers: HeadersInit = {},
 ): Promise<Response> {
   try {
-    // Generate initial DPoP proof
+    // Check nonce cache for this origin
+    const cachedNonce = getCachedNonce(url);
+
+    // Generate initial DPoP proof (with cached nonce if available)
     let dpopProof = await generateDPoPProof(
       method,
       url,
       privateKey,
       publicKeyJWK,
       accessToken,
+      cachedNonce,
     );
 
     const requestHeaders: HeadersInit = {
@@ -172,6 +196,9 @@ export async function makeDPoPRequest(
     }
 
     let response = await fetch(url, fetchOptions);
+
+    // Always update nonce cache from response
+    updateNonceCache(url, response);
 
     // Handle DPoP nonce challenge
     if (response.status === 401) {
@@ -198,6 +225,7 @@ export async function makeDPoPRequest(
         }
 
         response = await fetch(url, retryOptions);
+        updateNonceCache(url, response);
       }
     }
 

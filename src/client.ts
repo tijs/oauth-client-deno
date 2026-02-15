@@ -11,6 +11,7 @@ import {
   AuthorizationError,
   InvalidHandleError,
   InvalidStateError,
+  IssuerMismatchError,
   NetworkError,
   OAuthError,
   RefreshTokenExpiredError,
@@ -24,6 +25,7 @@ import {
   discoverOAuthEndpointsFromPDS,
   resolveDidDocument,
 } from "./resolvers.ts";
+import { validateTokenResponse } from "./validation.ts";
 import { generateCodeChallenge, generateCodeVerifier } from "./pkce.ts";
 import { exchangeCodeForTokens, refreshTokens } from "./token-exchange.ts";
 import type { Logger } from "./logger.ts";
@@ -68,11 +70,13 @@ const PKCE_STATE_TTL = 600;
  * ```
  */
 export class OAuthClient {
+  private readonly config: OAuthClientConfig;
   private readonly clientId: string;
   private readonly redirectUri: string;
   private readonly storage: OAuthStorage;
   private readonly handleResolver: (handle: string) => Promise<{ did: string; pdsUrl: string }>;
   private readonly logger: Logger;
+  private readonly refreshTimeout: number;
 
   /**
    * Per-session lock manager to prevent concurrent restore/refresh operations.
@@ -105,10 +109,12 @@ export class OAuthClient {
    * ```
    */
   constructor(config: OAuthClientConfig) {
+    this.config = config;
     this.clientId = config.clientId;
     this.redirectUri = config.redirectUri;
     this.storage = config.storage;
     this.logger = config.logger ?? new NoOpLogger();
+    this.refreshTimeout = config.refreshTimeout ?? 30_000;
 
     // Create handle resolver - either custom or default with optional Slingshot URL
     const resolver = config.handleResolver ?? createDefaultResolver(config.slingshotUrl);
@@ -174,6 +180,8 @@ export class OAuthClient {
       let pdsUrl: string;
       let handle: string;
 
+      let issuer: string;
+
       if (isAuthServerUrl) {
         // Authorization server URL provided directly — skip handle resolution
         authServer = input.replace(/\/$/, "");
@@ -185,7 +193,8 @@ export class OAuthClient {
         // Discover OAuth endpoints to verify this is a valid auth server
         const oauthEndpoints = await discoverOAuthEndpointsFromPDS(authServer);
         authServer = this.extractAuthServer(oauthEndpoints.authorizationEndpoint);
-        this.logger.debug("OAuth endpoints discovered", { authServer });
+        issuer = oauthEndpoints.issuer;
+        this.logger.debug("OAuth endpoints discovered", { authServer, issuer });
       } else {
         // Resolve handle to get user's PDS and DID
         handle = input;
@@ -199,7 +208,8 @@ export class OAuthClient {
         // Discover OAuth endpoints from the PDS
         const oauthEndpoints = await discoverOAuthEndpointsFromPDS(pdsUrl);
         authServer = this.extractAuthServer(oauthEndpoints.authorizationEndpoint);
-        this.logger.debug("OAuth endpoints discovered", { authServer });
+        issuer = oauthEndpoints.issuer;
+        this.logger.debug("OAuth endpoints discovered", { authServer, issuer });
       }
 
       // Generate PKCE parameters
@@ -207,10 +217,11 @@ export class OAuthClient {
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       const state = options?.state ?? crypto.randomUUID();
 
-      // Store PKCE data for callback
+      // Store PKCE data for callback (includes issuer for verification)
       await this.storage.set(`pkce:${state}`, {
         codeVerifier,
         authServer,
+        issuer,
         handle,
         did,
         pdsUrl,
@@ -267,6 +278,15 @@ export class OAuthClient {
   async callback(
     params: URLSearchParams,
   ): Promise<{ session: OAuthSession; state: string | null }> {
+    // JARM detection — reject JWT-encoded authorization responses
+    const responseJwt = params.get("response");
+    if (responseJwt) {
+      throw new OAuthError(
+        "JWT Secured Authorization Response Mode (JARM) is not supported. " +
+          "The authorization server returned a JWT response.",
+      );
+    }
+
     const error = params.get("error");
     if (error) {
       this.logger.error("Authorization callback error", {
@@ -290,6 +310,7 @@ export class OAuthClient {
     const pkceData = await this.storage.get<{
       codeVerifier: string;
       authServer: string;
+      issuer: string;
       handle: string;
       did: string;
       pdsUrl: string;
@@ -300,13 +321,24 @@ export class OAuthClient {
       throw new InvalidStateError();
     }
 
+    // Validate iss parameter (RFC 9207) when present
+    const iss = params.get("iss");
+    if (iss && iss !== pkceData.issuer) {
+      this.logger.error("Issuer mismatch in callback iss parameter", {
+        expected: pkceData.issuer,
+        actual: iss,
+      });
+      await this.storage.delete(`pkce:${state}`);
+      throw new IssuerMismatchError(pkceData.issuer, iss);
+    }
+
     try {
       // Generate DPoP keys for token exchange
       this.logger.debug("Generating DPoP keys");
       const dpopKeys = await generateDPoPKeyPair();
 
       // Exchange authorization code for tokens
-      const tokens = await exchangeCodeForTokens(
+      const rawTokens = await exchangeCodeForTokens(
         pkceData.authServer,
         code,
         pkceData.codeVerifier,
@@ -316,11 +348,16 @@ export class OAuthClient {
         this.logger,
       );
 
-      // Resolve DID, handle, and PDS from token response when not available
-      // (auth server URL flow skips handle resolution, so these come from `sub`)
+      // Validate token response
+      const validatedTokens = validateTokenResponse(rawTokens);
+
+      // Resolve DID, handle, and PDS from token response
       let { did, handle, pdsUrl } = pkceData;
-      if (!did && tokens.sub) {
-        did = tokens.sub;
+      const tokenDid = validatedTokens.sub;
+
+      if (!did) {
+        // Auth server URL flow — populate from token sub claim
+        did = tokenDid;
         this.logger.debug("Using DID from token response sub claim", { did });
         const resolved = await resolveDidDocument(did);
         handle = resolved.handle;
@@ -328,25 +365,36 @@ export class OAuthClient {
         this.logger.debug("Resolved DID document", { handle, pdsUrl });
       }
 
+      // CRITICAL: Verify the auth server is authoritative for this DID
+      // Prevents a malicious auth server from claiming to be another user
+      await this.verifyIssuer(tokenDid, pkceData.authServer, pkceData.issuer, pdsUrl);
+
       // Create session
       const sessionData: SessionData = {
         did,
         handle,
         pdsUrl,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token ?? "",
+        accessToken: validatedTokens.access_token,
+        refreshToken: validatedTokens.refresh_token ?? "",
         dpopPrivateKeyJWK: dpopKeys.privateKeyJWK,
         dpopPublicKeyJWK: dpopKeys.publicKeyJWK,
-        tokenExpiresAt: Date.now() + (tokens.expires_in * 1000),
+        tokenExpiresAt: Date.now() + (validatedTokens.expires_in * 1000),
       };
 
       const session = new Session(sessionData);
 
+      // Attach refresh callback for auto-retry on 401
+      this.attachRefreshCallback(session, did);
+
       // Clean up PKCE data
       await this.storage.delete(`pkce:${state}`);
 
-      this.logger.info("Authorization callback completed", { did: pkceData.did });
-      return { session: session, state: params.get("state") };
+      this.logger.info("Authorization callback completed", { did });
+
+      // Emit session event
+      this.config.onSessionUpdated?.(did, session);
+
+      return { session, state: params.get("state") };
     } catch (error) {
       // Clean up PKCE data even on error
       await this.storage.delete(`pkce:${state}`);
@@ -415,6 +463,9 @@ export class OAuthClient {
         }
 
         const session = Session.fromJSON(sessionData);
+
+        // Attach refresh callback for auto-retry on 401
+        this.attachRefreshCallback(session, sessionId);
 
         // Auto-refresh if needed
         if (session.isExpired) {
@@ -540,6 +591,14 @@ export class OAuthClient {
   refresh(session: Session): Promise<Session> {
     const did = session.did;
 
+    // Use custom lock if provided
+    if (this.config.requestLock) {
+      return this.config.requestLock(
+        `refresh:${did}`,
+        () => this.performRefresh(session, did),
+      );
+    }
+
     // Check if another request is already refreshing this session
     const existingLock = this.refreshLocks.get(did);
     if (existingLock) {
@@ -547,92 +606,85 @@ export class OAuthClient {
       return existingLock;
     }
 
-    // Create a new refresh operation
+    // Create a new refresh operation with in-memory lock
     const refreshPromise = (async () => {
-      this.logger.info("Refreshing tokens", { did });
-
       try {
-        // Discover OAuth endpoints from PDS
-        const oauthEndpoints = await discoverOAuthEndpointsFromPDS(session.pdsUrl);
-        this.logger.debug("Token endpoint discovered", {
-          tokenEndpoint: oauthEndpoints.tokenEndpoint,
-        });
-
-        const refreshedTokens = await refreshTokens(
-          oauthEndpoints.tokenEndpoint,
-          session.refreshToken,
-          this.clientId,
-          session.toJSON().dpopPrivateKeyJWK,
-          session.toJSON().dpopPublicKeyJWK,
-          this.logger,
-        );
-
-        // Update session with new tokens
-        session.updateTokens(refreshedTokens);
-        this.logger.info("Token refresh successful", { did });
-        return session;
-      } catch (error) {
-        this.logger.error("Token refresh failed", { did, error });
-
-        // Check for token replay error (concurrent refresh in another isolate)
-        if (this.isTokenReplayedError(error)) {
-          this.logger.info("Token replay detected, fetching updated session from storage", { did });
-
-          // Wait briefly for the other process to save
-          await this.sleep(200);
-
-          // Re-read session from storage (the other process should have saved new tokens)
-          const updatedSessionData = await this.storage.get<SessionData>(`session:${did}`);
-          if (updatedSessionData) {
-            const updatedSession = Session.fromJSON(updatedSessionData);
-            if (!updatedSession.isExpired) {
-              this.logger.info("Retrieved refreshed session from storage after replay detection", {
-                did,
-              });
-              return updatedSession;
-            }
-          }
-
-          // Could not recover - throw the original error
-          this.logger.error("Could not recover from token replay - no valid session in storage", {
-            did,
-          });
-        }
-
-        // Classify the error based on type
-        if (error instanceof TokenExchangeError) {
-          // Already a TokenExchangeError, check for specific grant errors
-          if (error.errorCode === "invalid_grant") {
-            throw new RefreshTokenExpiredError(error);
-          }
-          throw error;
-        }
-
-        // Check for network-related errors
-        if (error instanceof Error) {
-          const errorMessage = error.message.toLowerCase();
-          if (
-            errorMessage.includes("network") ||
-            errorMessage.includes("timeout") ||
-            errorMessage.includes("connection") ||
-            errorMessage.includes("fetch")
-          ) {
-            throw new NetworkError("Failed to reach token endpoint", error);
-          }
-        }
-
-        // Default to generic token exchange error
-        throw new TokenExchangeError("Token refresh failed", undefined, error as Error);
+        return await this.performRefresh(session, did);
       } finally {
-        // Always cleanup the lock when done
         this.refreshLocks.delete(did);
       }
     })();
 
-    // Store the promise so concurrent requests can wait for it
     this.refreshLocks.set(did, refreshPromise);
-
     return refreshPromise;
+  }
+
+  private async performRefresh(session: Session, did: string): Promise<Session> {
+    this.logger.info("Refreshing tokens", { did });
+
+    try {
+      const oauthEndpoints = await discoverOAuthEndpointsFromPDS(session.pdsUrl);
+      this.logger.debug("Token endpoint discovered", {
+        tokenEndpoint: oauthEndpoints.tokenEndpoint,
+      });
+
+      const refreshedTokens = await refreshTokens(
+        oauthEndpoints.tokenEndpoint,
+        session.refreshToken,
+        this.clientId,
+        session.toJSON().dpopPrivateKeyJWK,
+        session.toJSON().dpopPublicKeyJWK,
+        this.logger,
+        this.refreshTimeout,
+      );
+
+      session.updateTokens(refreshedTokens);
+      this.logger.info("Token refresh successful", { did });
+
+      this.config.onSessionUpdated?.(did, session);
+      return session;
+    } catch (error) {
+      this.logger.error("Token refresh failed", { did, error });
+
+      // Check for token replay error (concurrent refresh in another isolate)
+      if (this.isTokenReplayedError(error)) {
+        this.logger.info("Token replay detected, fetching updated session from storage", { did });
+        await this.sleep(200);
+
+        const updatedSessionData = await this.storage.get<SessionData>(`session:${did}`);
+        if (updatedSessionData) {
+          const updatedSession = Session.fromJSON(updatedSessionData);
+          if (!updatedSession.isExpired) {
+            this.logger.info("Retrieved refreshed session from storage after replay detection", {
+              did,
+            });
+            return updatedSession;
+          }
+        }
+
+        this.logger.error("Could not recover from token replay - no valid session in storage", {
+          did,
+        });
+      }
+
+      // Best-effort revocation on non-recoverable, non-network errors
+      if (!this.isTokenReplayedError(error) && !this.isNetworkError(error)) {
+        this.revokeTokenBestEffort(session.pdsUrl, session.refreshToken);
+      }
+
+      if (error instanceof TokenExchangeError) {
+        if (error.errorCode === "invalid_grant") {
+          throw new RefreshTokenExpiredError(error);
+        }
+        throw error;
+      }
+
+      if (this.isNetworkError(error)) {
+        throw new NetworkError("Failed to reach token endpoint", error as Error);
+      }
+
+      throw new TokenExchangeError("Token refresh failed", undefined, error as Error);
+    }
   }
 
   /**
@@ -692,10 +744,67 @@ export class OAuthClient {
       // Always clean up storage
       await this.storage.delete(`session:${sessionId}`);
       this.logger.info("Session signed out", { sessionId });
+
+      // Emit session deleted event
+      this.config.onSessionDeleted?.(sessionId);
     }
   }
 
   // Private helper methods
+
+  /**
+   * Verify the authorization server is authoritative for the given DID.
+   *
+   * Resolves the DID document to find the user's PDS, then discovers the
+   * auth server from that PDS and compares it to the auth server that
+   * issued the tokens. This prevents a malicious auth server from issuing
+   * tokens claiming to be a different user.
+   */
+  private async verifyIssuer(
+    did: string,
+    authServer: string,
+    issuer: string,
+    knownPdsUrl?: string,
+  ): Promise<void> {
+    try {
+      // Get the PDS for this DID (use known PDS if available to save a lookup)
+      const pdsUrl = knownPdsUrl || (await resolveDidDocument(did)).pdsUrl;
+
+      // Discover the expected auth server from the DID's PDS
+      const expectedEndpoints = await discoverOAuthEndpointsFromPDS(pdsUrl);
+      const expectedIssuer = expectedEndpoints.issuer;
+
+      if (expectedIssuer !== issuer) {
+        this.logger.error("Issuer verification failed", {
+          did,
+          expectedIssuer,
+          actualIssuer: issuer,
+          authServer,
+        });
+        throw new IssuerMismatchError(expectedIssuer, issuer);
+      }
+
+      this.logger.debug("Issuer verification passed", { did, issuer });
+    } catch (error) {
+      if (error instanceof IssuerMismatchError) throw error;
+      // Log but don't block on verification failures (network issues etc.)
+      // The token exchange already succeeded with PKCE protection
+      this.logger.warn("Issuer verification could not be completed", {
+        did,
+        error,
+      });
+    }
+  }
+
+  /**
+   * Attach a refresh callback to a session for automatic 401 retry.
+   */
+  private attachRefreshCallback(session: Session, sessionId: string): void {
+    session.setRefreshCallback(async () => {
+      const refreshed = await this.refresh(session);
+      await this.store(sessionId, refreshed);
+    });
+  }
 
   private extractAuthServer(authorizationEndpoint: string): string {
     return authorizationEndpoint.replace(/\/oauth\/authorize$/, "");
@@ -715,6 +824,38 @@ export class OAuthClient {
       return message.includes("replayed") || description.includes("replayed");
     }
     return false;
+  }
+
+  private isNetworkError(error: unknown): boolean {
+    if (error instanceof NetworkError) return true;
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      return msg.includes("network") || msg.includes("timeout") ||
+        msg.includes("connection") || msg.includes("fetch");
+    }
+    return false;
+  }
+
+  /**
+   * Best-effort token revocation — fire and forget.
+   */
+  private revokeTokenBestEffort(pdsUrl: string, token: string): void {
+    discoverOAuthEndpointsFromPDS(pdsUrl).then((endpoints) => {
+      if (endpoints.revocationEndpoint) {
+        fetch(endpoints.revocationEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            token,
+            client_id: this.clientId,
+          }),
+        }).catch(() => {
+          // Intentionally ignored — best effort
+        });
+      }
+    }).catch(() => {
+      // Intentionally ignored — best effort
+    });
   }
 
   /**

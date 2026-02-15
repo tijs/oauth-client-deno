@@ -2,6 +2,10 @@ MIT License
 
 Copyright (c) 2025 Tijs Teulings
 
+Portions inspired by @atproto/oauth-client and @atproto/oauth-client-node
+Copyright (c) 2022-2025 Bluesky Social PBC, and Contributors
+Licensed under MIT and Apache 2.0 — https://github.com/bluesky-social/atproto
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
