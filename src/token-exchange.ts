@@ -15,6 +15,8 @@ export interface TokenResponse {
   access_token: string;
   refresh_token?: string;
   expires_in: number;
+  /** DID of the authenticated user (AT Protocol extension) */
+  sub?: string;
 }
 
 /**

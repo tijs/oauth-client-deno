@@ -1,6 +1,6 @@
 {
   "name": "@tijs/oauth-client-deno",
-  "version": "4.1.1",
+  "version": "4.1.2",
   "description": "AT Protocol OAuth client for Deno - handle-focused alternative to @atproto/oauth-client-node with Web Crypto API compatibility",
   "license": "MIT",
   "repository": {

@@ -297,6 +297,24 @@ export function createDefaultResolver(slingshotUrl?: string): HandleResolver {
  * Resolve PDS URL from DID by fetching DID document
  */
 async function resolvePdsFromDid(did: string): Promise<string> {
+  const result = await resolveDidDocument(did);
+  return result.pdsUrl;
+}
+
+/**
+ * Resolve DID document to extract PDS URL and handle.
+ *
+ * Fetches the DID document from PLC directory and extracts the PDS service
+ * endpoint and handle from alsoKnownAs. Used during auth server URL flows
+ * to populate session data after the token exchange.
+ *
+ * @param did - DID to resolve (e.g., "did:plc:...")
+ * @returns Promise resolving to PDS URL and handle
+ * @throws {PDSDiscoveryError} When DID document cannot be fetched or parsed
+ */
+export async function resolveDidDocument(
+  did: string,
+): Promise<{ pdsUrl: string; handle: string }> {
   try {
     const response = await fetch(`https://plc.directory/${encodeURIComponent(did)}`);
 
@@ -324,9 +342,18 @@ async function resolvePdsFromDid(did: string): Promise<string> {
     }
 
     // Clean up PDS URL
-    pdsUrl = pdsUrl.replace(/\/$/, ""); // Remove trailing slash
+    pdsUrl = pdsUrl.replace(/\/$/, "");
 
-    return pdsUrl;
+    // Extract handle from alsoKnownAs
+    let handle = did;
+    if (Array.isArray(didDocument.alsoKnownAs)) {
+      const atUri = didDocument.alsoKnownAs.find((uri: string) => uri.startsWith("at://"));
+      if (atUri) {
+        handle = atUri.replace("at://", "");
+      }
+    }
+
+    return { pdsUrl, handle };
   } catch (error) {
     throw new PDSDiscoveryError(did, error as Error);
   }

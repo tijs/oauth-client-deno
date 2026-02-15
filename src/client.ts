@@ -19,7 +19,11 @@ import {
   SessionNotFoundError,
   TokenExchangeError,
 } from "./errors.ts";
-import { createDefaultResolver, discoverOAuthEndpointsFromPDS } from "./resolvers.ts";
+import {
+  createDefaultResolver,
+  discoverOAuthEndpointsFromPDS,
+  resolveDidDocument,
+} from "./resolvers.ts";
 import { generateCodeChallenge, generateCodeVerifier } from "./pkce.ts";
 import { exchangeCodeForTokens, refreshTokens } from "./token-exchange.ts";
 import type { Logger } from "./logger.ts";
@@ -312,11 +316,23 @@ export class OAuthClient {
         this.logger,
       );
 
+      // Resolve DID, handle, and PDS from token response when not available
+      // (auth server URL flow skips handle resolution, so these come from `sub`)
+      let { did, handle, pdsUrl } = pkceData;
+      if (!did && tokens.sub) {
+        did = tokens.sub;
+        this.logger.debug("Using DID from token response sub claim", { did });
+        const resolved = await resolveDidDocument(did);
+        handle = resolved.handle;
+        pdsUrl = resolved.pdsUrl;
+        this.logger.debug("Resolved DID document", { handle, pdsUrl });
+      }
+
       // Create session
       const sessionData: SessionData = {
-        did: pkceData.did,
-        handle: pkceData.handle,
-        pdsUrl: pkceData.pdsUrl,
+        did,
+        handle,
+        pdsUrl,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token ?? "",
         dpopPrivateKeyJWK: dpopKeys.privateKeyJWK,
