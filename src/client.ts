@@ -122,13 +122,17 @@ export class OAuthClient {
   }
 
   /**
-   * Initiate OAuth authorization flow for an AT Protocol handle.
+   * Initiate OAuth authorization flow for an AT Protocol handle or auth server URL.
    *
    * Resolves the handle to a DID and PDS, discovers OAuth endpoints, generates
    * PKCE parameters, and creates a Pushed Authorization Request (PAR). Returns
    * the authorization URL where users should be redirected to complete authentication.
    *
-   * @param handle - AT Protocol handle (e.g., "alice.bsky.social")
+   * When an authorization server URL is provided (e.g., "https://bsky.social"),
+   * handle resolution is skipped and OAuth endpoints are discovered directly
+   * from the server. This enables "Connect with Bluesky" flows.
+   *
+   * @param input - AT Protocol handle (e.g., "alice.bsky.social") or authorization server URL (e.g., "https://bsky.social")
    * @param options - Additional authorization options
    * @returns Promise resolving to authorization URL for user redirection
    * @throws {InvalidHandleError} When handle format is invalid
@@ -148,26 +152,51 @@ export class OAuthClient {
    * ```
    */
   async authorize(
-    handle: string,
+    input: string,
     options?: AuthorizeOptions,
   ): Promise<URL> {
-    if (!isValidHandle(handle)) {
-      this.logger.error("Invalid handle format", { handle });
-      throw new InvalidHandleError(handle);
+    const isAuthServerUrl = input.startsWith("https://");
+
+    if (!isAuthServerUrl && !isValidHandle(input)) {
+      this.logger.error("Invalid handle format", { handle: input });
+      throw new InvalidHandleError(input);
     }
 
-    this.logger.info("Starting authorization flow", { handle });
+    this.logger.info("Starting authorization flow", { input });
 
     try {
-      // Resolve handle to get user's PDS and DID
-      this.logger.debug("Resolving handle to DID and PDS", { handle });
-      const resolved = await this.handleResolver(handle);
-      this.logger.debug("Handle resolved", { did: resolved.did, pdsUrl: resolved.pdsUrl });
+      let authServer: string;
+      let did: string;
+      let pdsUrl: string;
+      let handle: string;
 
-      // Discover OAuth endpoints from the PDS
-      const oauthEndpoints = await discoverOAuthEndpointsFromPDS(resolved.pdsUrl);
-      const authServer = this.extractAuthServer(oauthEndpoints.authorizationEndpoint);
-      this.logger.debug("OAuth endpoints discovered", { authServer });
+      if (isAuthServerUrl) {
+        // Authorization server URL provided directly — skip handle resolution
+        authServer = input.replace(/\/$/, "");
+        pdsUrl = authServer;
+        did = "";
+        handle = "";
+        this.logger.debug("Using authorization server URL directly", { authServer });
+
+        // Discover OAuth endpoints to verify this is a valid auth server
+        const oauthEndpoints = await discoverOAuthEndpointsFromPDS(authServer);
+        authServer = this.extractAuthServer(oauthEndpoints.authorizationEndpoint);
+        this.logger.debug("OAuth endpoints discovered", { authServer });
+      } else {
+        // Resolve handle to get user's PDS and DID
+        handle = input;
+        this.logger.debug("Resolving handle to DID and PDS", { handle });
+        const resolved = await this.handleResolver(handle);
+        this.logger.debug("Handle resolved", { did: resolved.did, pdsUrl: resolved.pdsUrl });
+
+        did = resolved.did;
+        pdsUrl = resolved.pdsUrl;
+
+        // Discover OAuth endpoints from the PDS
+        const oauthEndpoints = await discoverOAuthEndpointsFromPDS(pdsUrl);
+        authServer = this.extractAuthServer(oauthEndpoints.authorizationEndpoint);
+        this.logger.debug("OAuth endpoints discovered", { authServer });
+      }
 
       // Generate PKCE parameters
       const codeVerifier = generateCodeVerifier();
@@ -178,9 +207,9 @@ export class OAuthClient {
       await this.storage.set(`pkce:${state}`, {
         codeVerifier,
         authServer,
-        handle: handle,
-        did: resolved.did,
-        pdsUrl: resolved.pdsUrl,
+        handle,
+        did,
+        pdsUrl,
       }, { ttl: PKCE_STATE_TTL });
 
       this.logger.debug("PKCE state stored", { state });
@@ -192,7 +221,7 @@ export class OAuthClient {
           codeChallenge,
           state,
           scope: options?.scope ?? "atproto transition:generic",
-          loginHint: options?.loginHint ?? handle,
+          loginHint: options?.loginHint ?? input,
         },
       );
 

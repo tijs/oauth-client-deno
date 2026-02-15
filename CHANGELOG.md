@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-02-15
+
+### Added
+
+- **Authorization server URL support in `authorize()`**: The `authorize` method
+  now accepts authorization server URLs (e.g., `https://bsky.social`) in addition
+  to AT Protocol handles. When a URL is provided, handle resolution is skipped
+  and OAuth endpoints are discovered directly from the server. This enables
+  "Connect with Bluesky" flows that redirect users to a specific auth server
+  without requiring handle entry.
+
 ## [4.0.2] - 2025-11-27
 
 ### Fixed
