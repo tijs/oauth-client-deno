@@ -2,6 +2,7 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tijsteulings)
 
+[![Test](https://github.com/tijs/oauth-client-deno/actions/workflows/test.yml/badge.svg)](https://github.com/tijs/oauth-client-deno/actions/workflows/test.yml)
 [![JSR](https://jsr.io/badges/@tijs/oauth-client-deno)](https://jsr.io/@tijs/oauth-client-deno)
 [![npm](https://img.shields.io/npm/v/@tijs/oauth-client-deno)](https://www.npmjs.com/package/@tijs/oauth-client-deno)
 
