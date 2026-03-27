@@ -2,6 +2,9 @@
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/tijsteulings)
 
+[![JSR](https://jsr.io/badges/@tijs/oauth-client-deno)](https://jsr.io/@tijs/oauth-client-deno)
+[![npm](https://img.shields.io/npm/v/@tijs/oauth-client-deno)](https://www.npmjs.com/package/@tijs/oauth-client-deno)
+
 A **Deno-compatible** AT Protocol OAuth client built specifically for Deno environments using Web Crypto API. Built to solve crypto compatibility issues between Node.js-specific implementations and Deno runtime environments.
 
 ## 🎯 Opinionated Design
@@ -26,17 +29,12 @@ This client makes specific design choices that may or may not fit your use case:
 ## 🚀 Installation
 
 ```bash
-# Using JSR (recommended)
-deno add @tijs/oauth-client-deno
+# npm
+npm install @tijs/oauth-client-deno
 
-# Or import directly from JSR
-import { OAuthClient, MemoryStorage } from "jsr:@tijs/oauth-client-deno";
-
-# Pin to a specific version (optional)
-import { OAuthClient, MemoryStorage } from "jsr:@tijs/oauth-client-deno@^0.1.2";
+# Deno
+deno add jsr:@tijs/oauth-client-deno
 ```
-
-> **Note**: This package is designed for JSR and includes proper version pinning. Check the [CHANGELOG](CHANGELOG.md) for version history. If the package hasn't been published to JSR yet, it can be published using `deno publish` from this repository.
 
 ## 🔄 vs @atproto/oauth-client-node
 
