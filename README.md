@@ -415,6 +415,11 @@ for Deno environments using Web Crypto APIs.
 
 Thanks to the Bluesky team for the AT Protocol ecosystem.
 
-## See Also
+## Related Packages
 
-- **[@tijs/atproto-oauth-hono](https://jsr.io/@tijs/atproto-oauth-hono)**: High-level Hono integration built on top of this client.
+- [@tijs/atproto-oauth](https://github.com/tijs/atproto-oauth) - Framework-agnostic
+  OAuth integration for AT Protocol applications
+- [@tijs/atproto-storage](https://github.com/tijs/atproto-storage) - Storage
+  implementations
+- [@tijs/atproto-sessions](https://github.com/tijs/atproto-sessions) - Session
+  cookie management
