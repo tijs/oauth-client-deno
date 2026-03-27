@@ -26,6 +26,9 @@
     "exclude": [
       ".github/",
       ".vscode/",
+      "npm/",
+      "_build_npm.ts",
+      "_build_import_map.json",
       "coverage/",
       "test/",
       "*.test.ts",
@@ -40,7 +43,8 @@
     "fmt:fix": "deno fmt",
     "lint": "deno lint",
     "ci": "deno task fmt && deno task lint && deno task check && deno task test",
-    "prepare": "deno task ci"
+    "prepare": "deno task ci",
+    "build:npm": "deno run -A _build_npm.ts"
   },
   "fmt": {
     "useTabs": false,

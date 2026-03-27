@@ -4,6 +4,7 @@
 # Build outputs
 dist/
 build/
+npm/
 
 # Test coverage
 coverage/
