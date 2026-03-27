@@ -63,7 +63,8 @@
     "exclude": [
       "coverage/",
       "dist/",
-      "build/"
+      "build/",
+      "_build_npm.ts"
     ]
   },
   "compilerOptions": {
