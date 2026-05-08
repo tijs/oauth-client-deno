@@ -1,0 +1,28 @@
+name: Publish to JSR
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish-jsr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run CI checks
+        run: deno task ci
+
+      - name: Publish to JSR
+        run: deno publish
